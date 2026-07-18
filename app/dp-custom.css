@@ -1,0 +1,215 @@
+/* Small custom bits Astryx doesn't have a component for — swatches, grid
+   bars, the mood <select>. Everything else in the app is real Astryx. */
+
+/* Astryx's own neutral theme already sets --font-family-heading/body to a
+   sans stack (Figtree + system sans fallbacks) — this is a safety net in
+   case that variable isn't resolving, forcing the app's own chrome to
+   sans-serif regardless. Does NOT apply to the generated brand-system
+   preview text (Color/Typography/Overview sections use inline styles with
+   the real mood-picked font on purpose — some moods are genuinely serif). */
+html, body{
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.dp-mood-select{
+  padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);
+  background:#1a1a1a;color:#eee;
+  font-size:13px;text-transform:capitalize;
+}
+
+.dp-variation-select{
+  padding:7px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);
+  background:#1a1a1a;color:#eee;
+  font-size:13px;font-weight:600;cursor:pointer;min-width:140px;
+}
+
+.dp-btn-green,.dp-btn-green:hover{
+  background:#4CBB17 !important;border-color:#4CBB17 !important;color:#fff !important;
+}
+.dp-btn-green:hover{background:#3D9612 !important;border-color:#3D9612 !important;}
+
+/* Gradient lifted from the logo mark's shutter blades (public/logo-icon.png)
+   — cyan-blue through to the deep purple/magenta of the trailing blades. */
+.dp-btn-blue{
+  background:linear-gradient(135deg,#38BDF8 0%,#2F6FED 35%,#7C3AED 70%,#C026D3 100%) !important;
+  border-color:transparent !important;color:#fff !important;
+}
+.dp-btn-blue:hover{
+  background:linear-gradient(135deg,#0EA5E9 0%,#1F4FC4 35%,#6D28D9 70%,#A21CAF 100%) !important;
+}
+
+/* Halve the default button radius (theme default: --radius-element, 0.625rem) */
+.astryx-button{--_button-radius:0.3125rem;}
+
+/* Logo stays at the left edge (aligned with the collapsed sidenav's icon
+   column below it) — only the "DesignPipe" text (2nd child: the
+   textContainer span, per TopNavHeading's real render structure) shifts
+   right to align with "Overview" in the content area. */
+.astryx-top-nav-heading > span:nth-child(2){
+  margin-left:16px;
+}
+.astryx-top-nav-heading{
+  font-size:1.15em;
+}
+
+.dp-swatch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;}
+.dp-swatch{border-radius:8px;overflow:hidden;border:1px solid var(--color-border, #ddd);cursor:pointer;background:none;text-align:left;font-family:inherit;padding:0;}
+.dp-swatch-color{height:64px;width:100%;}
+.dp-swatch-info{padding:8px 10px;}
+
+.dp-swatch-strip{display:flex;gap:6px;}
+.dp-swatch-chip{width:32px;height:32px;border-radius:6px;flex-shrink:0;border:1px solid rgba(255,255,255,0.15);}
+
+.dp-grid-bars{display:flex;gap:4px;height:28px;}
+.dp-grid-col{background:var(--color-accent, #4CBB17);border-radius:3px;opacity:0.55;flex:1;}
+
+.dp-check-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+.dp-type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+.dp-name-form{background:rgba(237,228,208,0.05);border-radius:8px;padding:16px;max-width:480px;}
+.dp-delete-btn{background:none;border:none;color:#8f8672;cursor:pointer;font-size:14px;padding:4px 8px;border-radius:4px;}
+.dp-delete-btn:hover{background:rgba(255,80,80,0.15);color:#ff8080;}
+.dp-intake-preview{display:block;max-width:100%;max-height:360px;margin:0 auto;border-radius:0;object-fit:contain;}
+
+.dp-prompt-textarea{
+  width:100%;padding:10px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);
+  background:#1a1a1a;color:#eee;font-family:inherit;font-size:14px;resize:vertical;
+}
+
+/* Similar/Category option cards — full-sentence choices, stacked, not
+   pill chips (those truncate/wrap badly past a couple words). */
+.dp-option-card{
+  display:block;width:100%;text-align:left;padding:10px 12px;border-radius:6px;
+  border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.02);
+  color:#cfc3a8;font-size:13px;line-height:1.4;cursor:pointer;
+}
+.dp-option-card:hover{border-color:#6b6b6b;color:#fff;}
+.dp-option-card.active{border-color:#2F6FED;background:rgba(47,111,237,0.12);color:#fff;}
+.dp-option-card:disabled{opacity:0.5;cursor:not-allowed;}
+
+.dp-spinner{
+  width:14px;height:14px;border-radius:50%;
+  border:2px solid rgba(255,255,255,0.18);border-top-color:#cfc3a8;
+  animation:dp-spin 0.7s linear infinite;
+}
+@keyframes dp-spin{to{transform:rotate(360deg);}}
+
+.dp-preset-row{flex-wrap:wrap;}
+.dp-preset-chip{
+  padding:5px 12px;border-radius:100px;border:1px solid rgba(255,255,255,0.18);
+  background:transparent;color:#cfc3a8;font-size:12px;cursor:pointer;
+}
+.dp-preset-chip:hover{border-color:#4CBB17;color:#fff;}
+.dp-preset-chip.active{background:#4a4a4a;border-color:#4a4a4a;color:#fff;}
+
+.dp-size-chip{
+  padding:6px 14px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.18);
+  background:transparent;color:#cfc3a8;font-size:13px;cursor:pointer;font-weight:600;
+}
+.dp-size-chip.active{background:#4a4a4a;border-color:#4a4a4a;color:#fff;}
+
+.dp-step-btn{
+  width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.18);
+  background:transparent;color:#eee;font-size:16px;cursor:pointer;
+}
+.dp-step-btn:hover{border-color:#4CBB17;}
+.dp-step-btn:disabled{cursor:not-allowed;opacity:0.5;}
+.dp-step-btn:disabled:hover{border-color:rgba(255,255,255,0.18);}
+
+/* A Source engine with no key on file — dims out instead of blocking the
+   whole panel, real count reads 0 until a key is added. */
+.dp-stepper-locked{opacity:0.4;}
+
+/* One horizontal row per round — real feedback: the old 3-column masonry
+   wrapped a round's images across multiple rows, making rounds hard to
+   scan at a glance. Fixed thumbnail height, natural width per image's own
+   aspect ratio, row scrolls horizontally instead of wrapping. */
+.dp-thumb-grid{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;align-items:flex-start;}
+.dp-thumb-wrap{
+  border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.15);
+  flex:0 0 auto;background:rgba(237,228,208,0.04);
+}
+.dp-thumb-img{height:220px;width:auto;max-width:320px;object-fit:cover;display:block;}
+.dp-thumb-footer{padding:8px;justify-content:space-between;}
+
+/* Ghost loaders for in-flight generations - same fixed height as a real
+   thumb, a plausible fixed width (no real image yet to size against), a
+   shimmer sweep instead of a flat block so a generating batch reads as
+   "working" rather than "stuck." */
+.dp-thumb-ghost{background:rgba(237,228,208,0.04);}
+.dp-thumb-ghost-img{height:220px;width:280px;background:linear-gradient(100deg, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 70%);background-size:200% 100%;animation:dp-shimmer 1.4s ease-in-out infinite;}
+.dp-thumb-ghost-footer{height:34px;}
+@keyframes dp-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* Flat favorites grid — Lightbox browses hearted images as a flat list,
+   not grouped by round. "Gallery" is reserved for a future, different
+   section (e.g. a broader curated collection), so this is deliberately
+   named Lightbox throughout, not Gallery. */
+.dp-lightbox-flat-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:16px;}
+.dp-lightbox-flat-item{display:flex;flex-direction:column;gap:6px;}
+.dp-lightbox-flat-imgwrap{position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.15);}
+.dp-lightbox-flat-imgwrap img{width:100%;height:auto;display:block;}
+
+/* Raw-mode toggle next to Description — Flux/Gemini's auto-appended
+   photo description, off means send exactly what's typed. */
+.dp-raw-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.dp-raw-toggle input{width:14px;height:14px;cursor:pointer;accent-color:#6b6b6b;}
+
+/* Advanced section toggle (Mood presets) — plain text link, not another
+   bordered chip/button, so it reads as secondary to the main panel. */
+.dp-advanced-toggle{
+  display:flex;align-items:center;gap:4px;background:none;border:none;
+  color:#9a8f75;cursor:pointer;padding:0;font-size:13px;
+}
+.dp-advanced-toggle:hover{color:#fff;}
+
+/* Export's checkbox rows — image list (All/Favorites) and round list
+   (Rounds) both render as a plain checklist, no thumbnails. */
+.dp-round-checkbox-row{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;}
+.dp-round-checkbox-row input{width:16px;height:16px;cursor:pointer;accent-color:#6b6b6b;}
+
+/* Recraft strength slider — same grey as the checkboxes, not the browser
+   default blue. */
+.dp-range{accent-color:#6b6b6b;}
+
+/* Export's whole flow lives in one centered, narrow box — a deliberately
+   small, focused surface (steps 1/2/3) instead of stretching full-width
+   like the other sections. Fixed width (not just max-width) so it doesn't
+   shrink to fit shorter content, e.g. the Rounds checklist or the "All"
+   summary line. */
+.dp-export-narrow{width:480px;margin:0 auto;}
+
+/* Export button: bigger target, and a clear gap above it so it doesn't
+   read as part of the upscale chip row. */
+.dp-export-btn{min-height:52px;margin-top:32px;}
+
+/* Critique's per-round boxes — a visible border so each round reads as
+   its own closeable unit (default Collapsible chevron alone was too
+   subtle sitting all the way on the right of a wide row). We render our
+   own chevron on the left instead. */
+.dp-round-box{
+  border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:12px 16px;
+}
+/* Collapsible's trigger button always renders exactly two spans — our
+   label content, then its own built-in chevron. We supply our own
+   chevron inside the label, so hide the built-in one structurally
+   (it has no stable class of its own to target — StyleX-generated). */
+.dp-round-box button > span:last-child{display:none;}
+
+/* Two-column Intake layout — reference photo stays visible on the left,
+   generation panel lives in a persistent right-hand panel instead of
+   stacking below. The panel scrolls on its own (Settings + History can
+   run tall) while the photo/main column stays put — layout.height:100%
+   fills AppShell's own bounded+scrollable <main> (fill mode), so this
+   never fights that outer scroll container, it just replaces the need
+   for it on this page. */
+.dp-intake-layout{display:flex;gap:24px;align-items:flex-start;height:100%;}
+.dp-intake-main{flex:1;min-width:0;}
+.dp-intake-panel{flex:0 0 420px;min-width:0;height:100%;overflow-y:auto;}
+@media (max-width:900px){
+  .dp-intake-layout{flex-direction:column;height:auto;}
+  .dp-intake-panel{flex:1;width:100%;height:auto;overflow-y:visible;}
+}
+
+.dp-fullres-preview{max-width:100%;max-height:60vh;border-radius:8px;object-fit:contain;}

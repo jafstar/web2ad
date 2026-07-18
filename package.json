@@ -1,0 +1,29 @@
+{
+  "private": true,
+  "name": "genstock-web",
+  "version": "0.1.0",
+  "description": "Genstock — generate across multiple AI sources at once, curate down to the one worth keeping.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@astryxdesign/cli": "^0.1.6",
+    "@astryxdesign/core": "^0.1.6",
+    "@astryxdesign/theme-neutral": "^0.1.6",
+    "@stylexjs/stylex": "^0.19.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "cloudinary": "^2.5.1",
+    "compromise": "^14.16.0",
+    "jotai": "^2.20.2",
+    "lucide-react": "^1.24.0",
+    "next": "^15.1.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "stripe": "^17.5.0"
+  }
+}

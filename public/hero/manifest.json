@@ -1,0 +1,62 @@
+[
+  {
+    "chip": "editorial",
+    "filename": "editorial-0.jpg",
+    "engine": "FLUX"
+  },
+  {
+    "chip": "editorial",
+    "filename": "editorial-1.webp",
+    "engine": "RECRAFT"
+  },
+  {
+    "chip": "editorial",
+    "filename": "editorial-2.jpg",
+    "engine": "FLUX"
+  },
+  {
+    "chip": "studio",
+    "filename": "studio-3.webp",
+    "engine": "RECRAFT"
+  },
+  {
+    "chip": "studio",
+    "filename": "studio-4.jpg",
+    "engine": "FLUX"
+  },
+  {
+    "chip": "studio",
+    "filename": "studio-5.webp",
+    "engine": "RECRAFT"
+  },
+  {
+    "chip": "warm-film",
+    "filename": "warm-film-6.jpg",
+    "engine": "FLUX"
+  },
+  {
+    "chip": "warm-film",
+    "filename": "warm-film-7.jpg",
+    "engine": "FLUX"
+  },
+  {
+    "chip": "warm-film",
+    "filename": "warm-film-8.webp",
+    "engine": "RECRAFT"
+  },
+  {
+    "chip": "minimal",
+    "filename": "minimal-9.webp",
+    "engine": "RECRAFT"
+  },
+  {
+    "chip": "minimal",
+    "filename": "minimal-10.jpg",
+    "engine": "FLUX"
+  },
+  {
+    "chip": "minimal",
+    "filename": "minimal-11.jpg",
+    "engine": "FLUX"
+  }
+]
