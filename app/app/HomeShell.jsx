@@ -15,6 +15,7 @@ import OverviewSection from '../../components/OverviewSection'
 import ProjectSettingsModal from '../../components/ProjectSettingsModal'
 import BillingModal from '../../components/BillingModal'
 import IntakeSection from '../../components/photos/IntakeSection'
+import StorySection from '../../components/story/StorySection'
 import CritiqueSection from '../../components/photos/CritiqueSection'
 import LightboxSection from '../../components/photos/LightboxSection'
 import ExportSection from '../../components/photos/ExportSection'
@@ -140,7 +141,7 @@ export default function HomeShell({ userEmail }) {
               <SideNavItem label="Overview" icon={LayoutDashboard} isSelected={section === 'overview'} onClick={openOverview} />
             </SideNavSection>
             {project && (
-              <SideNavSection title="Photos">
+              <SideNavSection title={project.project_type === 'story' ? 'Story' : 'Photos'}>
                 {PHOTOS_SECTIONS.map((s) => (
                   <SideNavItem
                     key={s.key}
@@ -162,7 +163,8 @@ export default function HomeShell({ userEmail }) {
             <Text type="body" color="secondary">Loading project…</Text>
           </HStack>
         )}
-        {project && section === 'intake' && <IntakeSection key={activeProjectId} project={project} saveData={saveData} />}
+        {project && section === 'intake' && project.project_type === 'story' && <StorySection key={activeProjectId} project={project} saveData={saveData} />}
+        {project && section === 'intake' && project.project_type !== 'story' && <IntakeSection key={activeProjectId} project={project} saveData={saveData} />}
         {project && section === 'critique' && <CritiqueSection key={activeProjectId} project={project} saveData={saveData} />}
         {project && section === 'lightbox' && <LightboxSection key={activeProjectId} project={project} saveData={saveData} />}
         {project && section === 'export' && <ExportSection key={activeProjectId} project={project} />}

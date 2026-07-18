@@ -11,13 +11,22 @@ import { Image as ImageIcon } from 'lucide-react'
 import { useProjects } from '../lib/useProjects'
 import InfoBubble from './InfoBubble'
 
-// Simplified from designpipe-app/renderer/components/OverviewSection.jsx
-// — genstock is Photos-only (no Web/Print/Voice pipelines), so this
-// skips straight to project creation instead of a medium picker.
+// Ported from designpipe-app/renderer/components/OverviewSection.jsx,
+// re-added a real medium picker: Photos (upload/generate one reference,
+// sweep variations) and Story (describe a subject, lock its identity,
+// sweep it across a real scene sequence - the mechanism proven tonight in
+// era-remix/walk-cycle/illustrated-classic testing, not just a single
+// portrait grid).
+const PROJECT_TYPES = [
+  { key: 'photos', label: 'Photos', description: 'Upload or generate a reference, sweep variations across engines.' },
+  { key: 'story', label: 'Story', description: 'Describe a subject once, lock its identity, generate it across a real scene sequence.' },
+]
+
 export default function OverviewSection({ onStartProject, onOpenProject }) {
   const { projects, loading, deleteProject } = useProjects()
   const [creating, setCreating] = React.useState(false)
   const [name, setName] = React.useState('')
+  const [projectType, setProjectType] = React.useState('photos')
   const [error, setError] = React.useState(null)
 
   // Real bug, live-caught: onStartProject's rejection (e.g. the new
@@ -27,9 +36,10 @@ export default function OverviewSection({ onStartProject, onOpenProject }) {
     e.preventDefault()
     setError(null)
     try {
-      await onStartProject(name.trim() || 'Untitled', 'photos')
+      await onStartProject(name.trim() || 'Untitled', projectType)
       setCreating(false)
       setName('')
+      setProjectType('photos')
     } catch (err) {
       setError(err.message)
     }
@@ -48,6 +58,21 @@ export default function OverviewSection({ onStartProject, onOpenProject }) {
         </button>
       ) : (
         <form onSubmit={submitCreate} className="dp-name-form">
+          <Text type="label">Type</Text>
+          <HStack gap={2}>
+            {PROJECT_TYPES.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                className={'dp-size-chip' + (projectType === t.key ? ' active' : '')}
+                onClick={() => setProjectType(t.key)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </HStack>
+          <Text type="supporting" color="secondary">{PROJECT_TYPES.find((t) => t.key === projectType)?.description}</Text>
+
           <Text type="label">Name your project</Text>
           <HStack gap={2}>
             <input
@@ -72,7 +97,7 @@ export default function OverviewSection({ onStartProject, onOpenProject }) {
           <ClickableCard key={p.id} label={`Open ${p.name}`} onClick={() => onOpenProject(p)} padding={3}>
             <HStack gap={2} align="center" justify="between">
               <HStack gap={2} align="center">
-                <Badge label="photos" variant="neutral" />
+                <Badge label={p.project_type || 'photos'} variant="neutral" />
                 <ImageIcon size={16} />
                 <Text type="body">{p.name}</Text>
               </HStack>
