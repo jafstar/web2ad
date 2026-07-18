@@ -1,4 +1,5 @@
 import { createClient } from '../../../lib/supabase/server'
+import { PROJECT_LIMIT, isWhitelisted } from '../../../lib/limits'
 
 // Real user-session-scoped client (RLS enforces user_id = auth.uid()) —
 // unlike credits/generate, these are genuinely user-owned reads/writes,
@@ -21,6 +22,16 @@ export async function POST(request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Not signed in' }, { status: 401 })
+
+  if (!isWhitelisted(user.email)) {
+    const { count, error: countError } = await supabase
+      .from('projects')
+      .select('id', { count: 'exact', head: true })
+    if (countError) return Response.json({ error: countError.message }, { status: 500 })
+    if (count >= PROJECT_LIMIT) {
+      return Response.json({ error: `You've reached the ${PROJECT_LIMIT}-project limit for the beta.`, code: 'project_limit', limit: PROJECT_LIMIT }, { status: 403 })
+    }
+  }
 
   const { name, projectType } = await request.json()
   const { data, error } = await supabase

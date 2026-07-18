@@ -18,12 +18,21 @@ export default function OverviewSection({ onStartProject, onOpenProject }) {
   const { projects, loading, deleteProject } = useProjects()
   const [creating, setCreating] = React.useState(false)
   const [name, setName] = React.useState('')
+  const [error, setError] = React.useState(null)
 
-  const submitCreate = (e) => {
+  // Real bug, live-caught: onStartProject's rejection (e.g. the new
+  // project-limit gate) went uncaught here - the form just closed with
+  // zero feedback, no created project, no visible reason why.
+  const submitCreate = async (e) => {
     e.preventDefault()
-    onStartProject(name.trim() || 'Untitled', 'photos')
-    setCreating(false)
-    setName('')
+    setError(null)
+    try {
+      await onStartProject(name.trim() || 'Untitled', 'photos')
+      setCreating(false)
+      setName('')
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   return (
@@ -53,6 +62,7 @@ export default function OverviewSection({ onStartProject, onOpenProject }) {
           </HStack>
         </form>
       )}
+      {error && <Text type="supporting" style={{ color: '#e05252' }}>{error}</Text>}
 
       <VStack gap={2}>
         <Text type="label">Recent Projects</Text>

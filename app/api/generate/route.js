@@ -6,6 +6,7 @@ import { generateFlux } from '../../../lib/engines/flux'
 import { generateGemini } from '../../../lib/engines/gemini'
 import { generateFromReference } from '../../../lib/engines/recraft'
 import { diversityHint, frontBackHint } from '../../../lib/promptGuards'
+import { ROUND_LIMIT_PER_PROJECT, isWhitelisted } from '../../../lib/limits'
 
 // Real port of designpipe-app's main.js images:generateBatch handler —
 // same parameter shape (prompt, referenceImageDataUrl, size, fluxCount,
@@ -25,6 +26,24 @@ export async function POST(request) {
   const { prompt, referenceImageDataUrl, size, fluxCount = 0, recraftCount = 0, recraftStrength = 0.5, recraftStyle = 'realistic_image', geminiCount = 0, variationMode = 'similar', projectId, frontBack = false } = await request.json()
   if (!prompt?.trim()) return Response.json({ error: 'prompt is required' }, { status: 400 })
   const perImageHint = frontBack ? frontBackHint : diversityHint
+
+  // Real cost-risk gate (see lib/limits.js) - checked before any API spend,
+  // same discipline as the balance pre-check below. One generate call is
+  // one new round (CritiqueSection.jsx assigns round numbers off the
+  // gallery's current max), so the round count IS the gallery's distinct
+  // round count, not the request size.
+  if (projectId && !isWhitelisted(user.email)) {
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('data')
+      .eq('id', projectId)
+      .single()
+    if (projectError) return Response.json({ error: projectError.message }, { status: 500 })
+    const roundCount = new Set((project?.data?.gallery ?? []).map((g) => g.round ?? 1)).size
+    if (roundCount >= ROUND_LIMIT_PER_PROJECT) {
+      return Response.json({ error: `This project has reached the ${ROUND_LIMIT_PER_PROJECT}-round limit for the beta.`, code: 'round_limit', limit: ROUND_LIMIT_PER_PROJECT }, { status: 403 })
+    }
+  }
 
   const admin = createAdminClient()
   const requestedTotal = fluxCount + recraftCount + geminiCount

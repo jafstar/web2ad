@@ -37,3 +37,6 @@ next-env.d.ts
 
 # mcp config (may contain local paths/tokens)
 .mcp.json
+
+.vercel
+.env*

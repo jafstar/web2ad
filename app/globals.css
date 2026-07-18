@@ -139,6 +139,31 @@ html:not([data-theme="dark"]) h3 {
 .nav-link:hover { color: var(--fg); }
 .nav-link.plain { color: var(--fg); }
 
+/* Site header — desktop is the original 3-column grid; the hamburger
+   button and mobile dropdown only exist below the breakpoint. */
+.site-header-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; padding: 28px 72px; }
+.site-header-logo { display: flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; justify-self: start; }
+.site-header-nav-desktop { display: flex; gap: 32px; justify-self: center; }
+.site-header-actions-desktop { display: flex; gap: 20px; align-items: center; justify-self: end; }
+.site-header-hamburger {
+  display: none; background: none; border: none; color: var(--fg); cursor: pointer;
+  padding: 6px; justify-self: end;
+}
+.site-header-nav-mobile { display: none; }
+
+@media (max-width: 768px) {
+  .site-header-bar { grid-template-columns: 1fr auto; padding: 20px 24px; gap: 12px; }
+  .site-header-nav-desktop, .site-header-actions-desktop { display: none; }
+  .site-header-hamburger { display: block; }
+  .site-header-nav-mobile {
+    display: flex; flex-direction: column; padding: 8px 24px 24px;
+    border-top: 1px solid var(--line, rgba(255,255,255,0.1));
+  }
+  .site-header-nav-mobile .nav-link { padding: 14px 0; border-bottom: 1px solid var(--line, rgba(255,255,255,0.08)); }
+  .site-header-actions-mobile { display: flex; flex-direction: column; gap: 14px; padding-top: 18px; align-items: flex-start; }
+  .site-header-actions-mobile .btn-gradient { width: 100%; text-align: center; }
+}
+
 /* Soft floating panel — matches the rounded dark app screenshots
    displayed on the homepage. */
 .card {
