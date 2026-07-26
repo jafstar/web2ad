@@ -1,29 +1,38 @@
 import SiteHeader from '../../components/SiteHeader'
 
+// Real web2ad FAQs, replacing leftover genstock-fork content (Flux/Recraft
+// image rounds, hearting, BYOK desktop - none of it applied to this
+// product). Pulled from the actual built funnel: URL -> brief -> Council
+// script -> free 5s preview (no signup) -> paid multi-shot generation ->
+// shot review/regenerate -> music pick -> export.
 const FAQS = [
   {
-    q: 'What engines does genstock actually use?',
-    a: 'Flux, Recraft, and Gemini generate every round side by side. Each is genuinely different at different things, so comparing them beats picking one and hoping.',
+    q: 'How does this actually work?',
+    a: 'Paste your website (or type a quick description of your business). We pull your real brand facts, write a short script with an actual story and character, and generate a video ad from it - no camera, no actors, no editing software.',
   },
   {
-    q: 'Do I need my own API keys?',
-    a: "Not on the hosted plan — we hold the keys, you just generate against your credit balance. If you'd rather use your own keys with no per-round cost, the BYOK desktop version (via DesignPipe) is built for that.",
+    q: 'Do I need a script or shots ready first?',
+    a: "No - paste your URL and Web2Ad drafts the whole thing: script, shot breakdown, and music. You review and can regenerate anything you don't like before it's final.",
   },
   {
-    q: 'What happens to images I don’t heart?',
-    a: "Nothing — they just sit in that round's history. Only the ones you heart get pulled into Lightbox, and only exports actually cost anything on the hosted plan.",
+    q: 'Is the free preview really free?',
+    a: 'Yes. No signup and no card required for the 5-second preview - one real scene with narration and music, generated from your actual site. You only sign up when you want the full ad.',
   },
   {
-    q: 'Is there a free trial?',
-    a: 'Yes — 3 free rounds to start, 3 images each, 9 previews total, no card required. Exports and downloads on those free rounds aren’t included.',
+    q: 'How long is the finished ad?',
+    a: 'Typically 15-30 seconds, depending on how many shots you keep and which clip-length tier you choose.',
   },
   {
-    q: 'Can I export full-resolution originals?',
-    a: 'On the hosted plan, exports are metered against your credit balance. On BYOK desktop, exports are unlimited since there’s no per-action cost to us — it’s your own key.',
+    q: "Can I pick the music, or fix a shot I don't like?",
+    a: "Both. Search real reference tracks or generate original instrumental options and choose before export. Any individual shot's image or motion can be regenerated with a quick note on what to change, without restarting the whole ad.",
   },
   {
-    q: 'What’s the difference between hosted and BYOK desktop?',
-    a: 'Same underlying engine either way. Hosted is sign-in-and-go with credit packs; BYOK desktop is a flat $50/year with your own API keys and no usage caps.',
+    q: 'What does it cost?',
+    a: "We're still finalizing pricing - see the Pricing page for the latest. The free preview costs nothing regardless.",
+  },
+  {
+    q: 'Who is this for?',
+    a: 'Small and local businesses - restaurants, salons, HVAC, dental, anyone who wants a real commercial without hiring a production crew.',
   },
 ]
 
