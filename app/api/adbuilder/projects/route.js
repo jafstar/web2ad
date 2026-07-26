@@ -38,6 +38,13 @@ export async function GET() {
   }
 
   const projects = data.map((p) => {
+    // v2 (beat pipeline) rows are only ever inserted after the real video
+    // already exists - see beatrun/route.js - so there's no in-progress
+    // state to derive here, unlike v1's adbuilder_runs-backed rows below.
+    // Checked first since a v2 row's runId never has a matching
+    // adbuilder_runs schema (it doesn't use that table at all).
+    if (p.data?.v2) return { ...p, status: 'done', thumbnailShotId: null, thumbnailUrl: p.data?.sceneImageUrl || null }
+
     const runId = p.data?.runId
     const schema = runId ? schemasByRunId[runId] : null
     if (!schema) return { ...p, status: runId ? 'editing' : 'pending', thumbnailShotId: null }

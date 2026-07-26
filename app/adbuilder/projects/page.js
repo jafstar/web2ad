@@ -62,12 +62,18 @@ export default function AdProjectsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {projects.map((p) => {
               const runId = p.data?.runId
-              const editHref = p.status === 'pending'
+              const isV2 = !!p.data?.v2
+              const editHref = isV2
+                ? `/adbuilder/beatfinish?run=${encodeURIComponent(runId)}`
+                : p.status === 'pending'
                 ? `/adbuilder/finish?stash=${encodeURIComponent(p.data?.stashId)}`
                 : `/adbuilder/finish?run=${encodeURIComponent(runId)}`
-              const thumbUrl = runId && p.thumbnailShotId
+              const thumbUrl = isV2
+                ? p.thumbnailUrl
+                : runId && p.thumbnailShotId
                 ? `/api/adbuilder/run/${runId}/media?type=keyframe&shotId=${p.thumbnailShotId}`
                 : null
+              const downloadHref = isV2 ? p.data?.videoUrl : `/api/adbuilder/run/${runId}/export`
               const badge = p.status === 'pending'
                 ? { label: 'Continue', bg: 'rgba(56,189,248,0.15)', color: 'var(--blue-glow)' }
                 : p.status === 'done'
@@ -97,10 +103,10 @@ export default function AdProjectsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Link href={editHref} className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', fontSize: 12.5, textDecoration: 'none' }}>
                         <Pencil size={12} />
-                        {p.status === 'pending' ? 'Continue' : 'Edit'}
+                        {isV2 ? 'View' : p.status === 'pending' ? 'Continue' : 'Edit'}
                       </Link>
                       {p.status === 'done' && (
-                        <a href={`/api/adbuilder/run/${runId}/export`} download="ad.mp4" className="btn-gradient" style={{ padding: '7px 16px', fontSize: 13, textDecoration: 'none' }}>
+                        <a href={downloadHref} download="ad.mp4" className="btn-gradient" style={{ padding: '7px 16px', fontSize: 13, textDecoration: 'none' }}>
                           Download
                         </a>
                       )}
