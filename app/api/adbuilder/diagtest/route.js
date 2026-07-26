@@ -14,11 +14,24 @@ export async function GET() {
 
   const { stdout } = await execFileAsync(process.execPath, ['-e', 'process.stdout.write(process.argv[1])', testArg])
 
+  // Second test: does execFile's own "Command failed" error-message
+  // reconstruction (only built on a non-zero exit) preserve the arg
+  // correctly? This is a genuinely different code path than a successful
+  // spawn - echo the arg back then exit(1) to force that path.
+  let errorMessage = null
+  try {
+    await execFileAsync(process.execPath, ['-e', 'process.stdout.write(process.argv[1]); process.exit(1)', testArg])
+  } catch (e) {
+    errorMessage = e.message
+  }
+
   return Response.json({
     sentLength: testArg.length,
     receivedLength: stdout.length,
     sent: testArg,
     received: stdout,
     match: testArg === stdout,
+    errorMessage,
+    errorMessageContainsFullArg: errorMessage?.includes(testArg),
   })
 }
