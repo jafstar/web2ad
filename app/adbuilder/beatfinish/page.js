@@ -8,6 +8,19 @@ import SiteHeader from '../../../components/SiteHeader'
 // ready flow, but simpler: no ShotReview/per-shot editing, generation
 // runs as one long request (/api/adbuilder/beatrun, real signup gate)
 // and the result renders straight to a video + download button.
+function formatElapsed(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60)
+  const s = totalSeconds % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function generatingStageLabel(seconds, beatCount) {
+  if (seconds < 10) return 'Synthesizing narration…'
+  const sceneStageEnd = 15 + beatCount * 25
+  if (seconds < sceneStageEnd) return `Generating your ${beatCount || ''} scenes — image and motion for each, one at a time. This is the slow part.`
+  return 'Should be close now — trimming, mixing, and compositing the final video…'
+}
+
 function BeatFinishInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -19,6 +32,7 @@ function BeatFinishInner() {
   const [phase, setPhase] = useState('loading') // loading -> confirm -> generating -> ready
   const [forking, setForking] = useState(false)
   const [autoCountdown, setAutoCountdown] = useState(null) // null = no timer running; number = seconds left
+  const [elapsed, setElapsed] = useState(0)
 
   // Two ways to land here: a fresh free-preview handoff (?stash=..., needs
   // an explicit click before the real generation starts) or reopening a
@@ -84,6 +98,19 @@ function BeatFinishInner() {
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoCountdown])
+
+  // This is one long synchronous request (beatrun/route.js) with no
+  // real-time progress signal from the server - rather than a static
+  // spinner that looks frozen for minutes, ticks a real elapsed-time
+  // counter (proves it's alive) alongside honest, roughly-staged status
+  // text based on the pipeline's own known order (narration first, then
+  // the slow per-scene generation, then compositing) - not a fake percent
+  // bar, since there's nothing real to back a precise number.
+  useEffect(() => {
+    if (phase !== 'generating') { setElapsed(0); return }
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000)
+    return () => clearInterval(t)
+  }, [phase])
 
   async function startGenerate() {
     setPhase('generating'); setError(null)
@@ -170,7 +197,12 @@ function BeatFinishInner() {
           <div style={{ textAlign: 'center', maxWidth: 480, margin: '80px auto' }}>
             <div className="dp-spinner" style={{ width: 32, height: 32, margin: '0 auto 20px' }} />
             <h2 style={{ fontSize: 22, marginBottom: 8 }}>Generating your full ad…</h2>
-            <p style={{ color: 'var(--mist)', fontSize: 14 }}>This takes a few minutes — real shots, real motion, real synced narration.</p>
+            <p style={{ color: 'var(--mist)', fontSize: 14, marginBottom: 14 }}>
+              {generatingStageLabel(elapsed, stashData?.script?.beats?.length || 0)}
+            </p>
+            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'var(--mist)', letterSpacing: '0.04em' }}>
+              {formatElapsed(elapsed)} elapsed
+            </div>
           </div>
         )}
         {!error && phase === 'ready' && result && (
