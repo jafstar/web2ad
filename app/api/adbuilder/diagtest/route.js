@@ -50,6 +50,26 @@ export async function GET() {
       graph: `[0:v]zoompan=z='min(zoom+0.0015,1.15)':d=125[v]`,
       maps: ['-map', '[v]', '-map', '1:a'],
     },
+    {
+      name: 'F_EXACT_current_preview_js_graph',
+      inputs: ['-loop', '1', '-i', img, '-i', narr, '-i', music],
+      graph: `[0:v]scale=1280:1280[vpre];` +
+        `[vpre]zoompan=z='min(zoom+0.0015,1.15)':d=125[vz];` +
+        `[vz]fps=25[vfps];` +
+        `[vfps]scale=1024:1024[vs2];` +
+        `[vs2]setsar=1[v];` +
+        `[2:a]volume=0.35[am];` +
+        `[1:a][am]amix=inputs=2:duration=first:dropout_transition=0[mixed];` +
+        `[mixed]afade=t=out:st=4.4:d=0.6[a]`,
+      maps: ['-map', '[v]', '-map', '[a]'],
+    },
+    {
+      name: 'G_zoompan_from_intermediate_label_only',
+      inputs: ['-loop', '1', '-i', img],
+      graph: `[0:v]scale=1280:1280[vpre];[vpre]zoompan=z='min(zoom+0.0015,1.15)':d=125[v]`,
+      maps: ['-map', '[v]'],
+      videoOnly: true,
+    },
   ]
 
   const results = {}
@@ -57,8 +77,11 @@ export async function GET() {
     const out = path.join(tmp, `${c.name}.mp4`)
     const filterPath = path.join(tmp, `${c.name}.txt`)
     fs.writeFileSync(filterPath, c.graph)
+    const codecArgs = c.videoOnly
+      ? ['-c:v', 'libx264', '-pix_fmt', 'yuv420p']
+      : ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac']
     try {
-      await execFileAsync(FFMPEG_PATH, ['-y', ...c.inputs, '-filter_complex_script', filterPath, ...c.maps, '-t', '1', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', out, '-loglevel', 'error'])
+      await execFileAsync(FFMPEG_PATH, ['-y', ...c.inputs, '-filter_complex_script', filterPath, ...c.maps, '-t', '1', ...codecArgs, out, '-loglevel', 'error'])
       results[c.name] = { ok: true }
     } catch (e) {
       results[c.name] = { ok: false, error: e.message.split('\n').slice(0, 3).join(' | ') }
