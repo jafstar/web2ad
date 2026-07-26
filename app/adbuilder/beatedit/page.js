@@ -57,6 +57,23 @@ function BeatEditInner() {
     }
   }
 
+  async function savePhrase(beatId, phrase) {
+    setBusyBeatId(beatId); setBusyAction('phrase'); setError(null)
+    try {
+      const res = await fetch('/api/adbuilder/beatedit/phrase', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runId, beatId, phrase }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not save that narration')
+      await loadProject()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusyBeatId(null); setBusyAction(null)
+    }
+  }
+
   async function regenMotion(beatId) {
     setBusyBeatId(beatId); setBusyAction('motion'); setError(null)
     try {
@@ -158,6 +175,7 @@ function BeatEditInner() {
                 busy={busyBeatId === beat.id ? busyAction : null}
                 onRegenImage={(fixNote, referenceImageDataUrl) => regenImage(beat.id, fixNote, referenceImageDataUrl)}
                 onRegenMotion={() => regenMotion(beat.id)}
+                onSavePhrase={(phrase) => savePhrase(beat.id, phrase)}
               />
             ))}
           </div>
@@ -189,10 +207,13 @@ function resizeImageFile(file, maxDim = 1024, quality = 0.85) {
   })
 }
 
-function BeatRow({ beat, busy, onRegenImage, onRegenMotion }) {
+function BeatRow({ beat, busy, onRegenImage, onRegenMotion, onSavePhrase }) {
   const [fixNote, setFixNote] = useState('')
   const [referencePreview, setReferencePreview] = useState(null)
   const [referenceError, setReferenceError] = useState(null)
+  const [phrase, setPhrase] = useState(beat.phrase)
+  const phraseDirty = phrase.trim() !== beat.phrase
+  useEffect(() => { setPhrase(beat.phrase) }, [beat.phrase])
 
   async function handleReferenceUpload(e) {
     const file = e.target.files?.[0]
@@ -221,7 +242,17 @@ function BeatRow({ beat, busy, onRegenImage, onRegenMotion }) {
             {beat.renderUrl ? 'clip ready' : 'needs motion'}
           </span>
         </div>
-        <div style={{ fontSize: 14, marginBottom: 4 }}>"{beat.phrase}"</div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 4 }}>
+          <textarea
+            value={phrase} onChange={(e) => setPhrase(e.target.value)}
+            rows={1} style={{ flex: 1, fontSize: 14, resize: 'vertical', minHeight: 30, padding: '5px 8px', background: phraseDirty ? 'rgba(124,58,237,0.08)' : 'transparent', border: `1px solid ${phraseDirty ? 'var(--accent-solid)' : 'transparent'}`, borderRadius: 6, color: 'var(--fg)', fontFamily: 'inherit' }}
+          />
+          {phraseDirty && (
+            <button onClick={() => onSavePhrase(phrase.trim())} disabled={busy === 'phrase'} className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11.5, whiteSpace: 'nowrap' }}>
+              {busy === 'phrase' ? 'Saving…' : 'Save'}
+            </button>
+          )}
+        </div>
         <div style={{ fontSize: 12.5, color: 'var(--mist)', marginBottom: 10 }}>{beat.visual}</div>
 
         <input

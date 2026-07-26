@@ -16,6 +16,7 @@
     "@astryxdesign/core": "^0.1.6",
     "@astryxdesign/theme-neutral": "^0.1.6",
     "@fal-ai/client": "^1.10.1",
+    "@sparticuz/chromium": "^149.0.0",
     "@stylexjs/stylex": "^0.19.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
@@ -27,6 +28,7 @@
     "lucide-react": "^1.24.0",
     "music-tempo": "^1.0.3",
     "next": "^15.5.22",
+    "playwright-core": "^1.62.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "stripe": "^17.5.0"

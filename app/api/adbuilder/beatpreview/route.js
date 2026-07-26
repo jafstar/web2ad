@@ -9,9 +9,9 @@ export const maxDuration = 90
 
 export async function POST(req) {
   try {
-    const { brief } = await req.json()
+    const { brief, direction } = await req.json()
     if (!brief?.businessName || !brief?.whatTheyDo) return Response.json({ error: 'Missing brief' }, { status: 400 })
-    const result = await previewFirstBeat(brief)
+    const result = await previewFirstBeat(brief, direction)
     return Response.json(result)
   } catch (e) {
     console.error('adbuilder/beatpreview failed:', e)

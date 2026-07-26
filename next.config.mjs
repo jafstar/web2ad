@@ -11,17 +11,25 @@ const nextConfig = {
   // node_modules/ffmpeg-static/. serverExternalPackages tells Next to leave
   // these as real runtime `require()`s against node_modules instead of
   // bundling them, so their internal path math stays correct.
-  serverExternalPackages: ['ffmpeg-static', 'ffprobe-static'],
-  // The binaries themselves are only ever referenced by string path (see
-  // lib/adbuilder/ffmpegBin.js), never a real `require`/`import` target, so
-  // the serverless output tracer can't auto-detect them and silently drops
-  // them from the deployed function - ffprobe-static ships every platform's
-  // binary unconditionally, so this pins just the linux/x64 one Vercel's
-  // build actually runs on instead of dragging in ~270MB of unused ones.
+  // @sparticuz/chromium (lib/adbuilder/htmlTextRenderer.js) resolves its
+  // own bundled binaries via `import.meta.url`-relative paths internally -
+  // the exact same pattern that broke ffmpeg-static's `__dirname`
+  // resolution once webpack bundled it into a chunk (see the ENOENT saga
+  // this session already lived through). Same fix, same reason: leave it
+  // as a real runtime require/import against node_modules instead.
+  serverExternalPackages: ['ffmpeg-static', 'ffprobe-static', '@sparticuz/chromium'],
+  // The binaries themselves are only ever referenced by string path, never
+  // a real `require`/`import` target, so the serverless output tracer
+  // can't auto-detect them and silently drops them from the deployed
+  // function - ffprobe-static ships every platform's binary unconditionally,
+  // so this pins just the linux/x64 one Vercel's build actually runs on
+  // instead of dragging in ~270MB of unused ones. @sparticuz/chromium's
+  // .br files are its actual compressed Chromium/fonts/swiftshader payload.
   outputFileTracingIncludes: {
     'app/api/adbuilder/**/*': [
       './node_modules/ffmpeg-static/ffmpeg',
       './node_modules/ffprobe-static/bin/linux/x64/ffprobe',
+      './node_modules/@sparticuz/chromium/bin/*.br',
     ],
   },
 }

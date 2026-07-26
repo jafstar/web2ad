@@ -35,6 +35,7 @@ function BeatAdWizardInner() {
   const [ingestMethod, setIngestMethod] = useState('url')
   const [url, setUrl] = useState('')
   const [text, setText] = useState('')
+  const [direction, setDirection] = useState('')
   const [brief, setBrief] = useState(null)
   const [beats, setBeats] = useState(null)
   const [atmosphere, setAtmosphere] = useState(null)
@@ -69,7 +70,7 @@ function BeatAdWizardInner() {
       setBusyLabel('Writing your story + rendering scene 1… (~30-45s)')
       const previewRes = await fetch('/api/adbuilder/beatpreview', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: ingestData.brief }),
+        body: JSON.stringify({ brief: ingestData.brief, direction }),
       })
       const previewData = await previewRes.json()
       if (!previewRes.ok) throw new Error(previewData.error || 'Could not build your preview')
@@ -195,6 +196,16 @@ function BeatAdWizardInner() {
                 style={{ marginBottom: 18, height: 64, fontSize: 20, padding: '0 20px' }}
               />
             )}
+
+            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 8 }}>
+              What do you want to see made? (optional)
+            </div>
+            <textarea
+              placeholder='e.g. "end with our cowboy mascot and our phone number" or "keep it fast-paced, no slow shots"'
+              value={direction} onChange={(e) => setDirection(e.target.value)}
+              style={{ width: '100%', minHeight: 64, marginBottom: 18, resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '10px 14px', fontSize: 14, fontFamily: 'Inter, sans-serif' }}
+            />
+
             <button type="submit" className="btn-gradient" disabled={busy} style={{ width: '100%', height: 48, opacity: busy ? 0.6 : 1 }}>
               {busy ? (ingestMethod === 'text' ? 'Reading your description…' : 'Reading your site…') : 'Analyze & Continue'}
             </button>
