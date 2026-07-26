@@ -11,6 +11,25 @@ export default function ScriptTrace({ trace }) {
   const [open, setOpen] = useState(false)
   if (!trace) return null
 
+  if (trace.mode === 'fast') {
+    return (
+      <div style={{ marginBottom: 24 }}>
+        <button
+          type="button" onClick={() => setOpen((v) => !v)}
+          className="btn-ghost" style={{ fontSize: 12.5, marginBottom: open ? 14 : 0 }}
+        >
+          {open ? 'Hide' : 'Show'} the writing process (fast: {trace.writer}, {trace.tone})
+        </button>
+        {open && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <TraceStep label={`1. ${trace.writer === 'grok' ? 'Grok' : 'Gemini'} pitch (${trace.tone})`} text={trace.pitch} />
+            <TraceStep label="2. Claude edit + scenery" text="(final narration/visual shown above)" muted />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const notes = [
     ['Arbiter (Claude)', trace.notes?.arbiter],
     ['Realist (Gemini)', trace.notes?.realist],

@@ -1,16 +1,21 @@
-import { writeAdStory } from '../../../../lib/adbuilder/story.js'
+import { writeAdStory, writeAdStoryFast } from '../../../../lib/adbuilder/story.js'
 import { generateShotBreakdown } from '../../../../lib/adbuilder/shots.js'
 
 export async function POST(req) {
   try {
-    const { brief, styleTag } = await req.json()
+    const { brief, styleTag, tone, writer } = await req.json()
     if (!brief) return Response.json({ error: 'Missing brief' }, { status: 400 })
     // Real Council pass (draft -> refine -> 4-voice critique incl. Grok's
     // Jester -> lead-edit), replacing the old flat single-Claude-call
     // writeScript - validated 2026-07-25 to fix both generic copy AND the
     // shot-breakdown's coherence problem (one real character/throughline
-    // instead of independently-invented unrelated shots).
-    const script = await writeAdStory(brief, styleTag)
+    // instead of independently-invented unrelated shots). Only takes this
+    // path when the caller doesn't opt into the fast 2-call pipeline below
+    // (tone/writer) - the real production wizard never sends those, so its
+    // behavior is byte-for-byte unchanged.
+    const script = (tone || writer)
+      ? await writeAdStoryFast(brief, { tone, writer })
+      : await writeAdStory(brief, styleTag)
     // Real breakdown of the full ad into scenes, shown to every free
     // visitor so the "paid" tier's shape is visible up front - only
     // scene 1 gets rendered into the free preview, the rest stay text-only

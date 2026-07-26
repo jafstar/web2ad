@@ -35,6 +35,14 @@ export default function PlaygroundPage() {
   const [tone, setTone] = useState('')
   const [trustSignals, setTrustSignals] = useState('')
   const [styleTag, setStyleTag] = useState(null)
+  // Real, separate "writer room" pipeline requested live 2026-07-26 - two
+  // calls (a single writer pitches, Claude edits/adds scenery) instead of
+  // the full 6-call Council above, specifically so different writer/tone
+  // combos are fast enough to actually A/B here. 'council' keeps today's
+  // existing behavior (styleTag + 4-voice critique) completely untouched.
+  const [pipeline, setPipeline] = useState('council') // 'council' | 'fast'
+  const [pipelineTone, setPipelineTone] = useState('professional')
+  const [writer, setWriter] = useState('gemini') // 'gemini' | 'grok'
   const [scriptBusy, setScriptBusy] = useState(false)
   const [scriptError, setScriptError] = useState(null)
   const [script, setScript] = useState(null)
@@ -117,7 +125,9 @@ export default function PlaygroundPage() {
       }
       const res = await fetch('/api/adbuilder/script', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, styleTag }),
+        body: JSON.stringify(
+          pipeline === 'fast' ? { brief, tone: pipelineTone, writer } : { brief, styleTag }
+        ),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not write a script')
@@ -169,6 +179,9 @@ export default function PlaygroundPage() {
                 tone={tone} setTone={setTone}
                 trustSignals={trustSignals} setTrustSignals={setTrustSignals}
                 styleTag={styleTag} setStyleTag={setStyleTag}
+                pipeline={pipeline} setPipeline={setPipeline}
+                pipelineTone={pipelineTone} setPipelineTone={setPipelineTone}
+                writer={writer} setWriter={setWriter}
                 busy={scriptBusy} error={scriptError} run={runScript}
                 favorites={favorites} loadFavorite={loadFavorite} removeFavorite={removeFavorite}
               />
@@ -189,10 +202,13 @@ export default function PlaygroundPage() {
   )
 }
 
+const TONE_PRESET_LABELS = { professional: 'Professional', funny: 'Funny', cinematic: 'Cinematic', zen: 'Zen' }
+
 function ScriptInputs({
   mode, setMode, url, setUrl, ingestBusy, runIngest,
   businessName, setBusinessName, whatTheyDo, setWhatTheyDo, tone, setTone, trustSignals, setTrustSignals,
-  styleTag, setStyleTag, busy, error, run,
+  styleTag, setStyleTag, pipeline, setPipeline, pipelineTone, setPipelineTone, writer, setWriter,
+  busy, error, run,
   favorites, loadFavorite, removeFavorite,
 }) {
   return (
@@ -251,25 +267,85 @@ function ScriptInputs({
             </LabeledField>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-            {STYLE_TAGS.map((t) => (
-              <button
-                key={t.key} type="button" disabled={busy}
-                onClick={() => setStyleTag((cur) => (cur === t.key ? null : t.key))}
-                style={{
-                  padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 500,
-                  border: `1px solid ${styleTag === t.key ? 'var(--accent-solid)' : 'rgba(255,255,255,0.12)'}`,
-                  background: styleTag === t.key ? 'rgba(124,58,237,0.18)' : 'transparent',
-                  color: 'var(--fg)', cursor: 'pointer',
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, overflow: 'hidden', width: 'fit-content', marginBottom: 14 }}>
+            <button
+              type="button" onClick={() => setPipeline('council')}
+              style={{ padding: '7px 14px', fontSize: 12.5, border: 'none', cursor: 'pointer', background: pipeline === 'council' ? 'rgba(124,58,237,0.22)' : 'transparent', color: 'var(--fg)' }}
+            >
+              Council (6-call)
+            </button>
+            <button
+              type="button" onClick={() => setPipeline('fast')}
+              style={{ padding: '7px 14px', fontSize: 12.5, border: 'none', cursor: 'pointer', background: pipeline === 'fast' ? 'rgba(124,58,237,0.22)' : 'transparent', color: 'var(--fg)' }}
+            >
+              Fast (2-call)
+            </button>
           </div>
 
+          {pipeline === 'council' && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+              {STYLE_TAGS.map((t) => (
+                <button
+                  key={t.key} type="button" disabled={busy}
+                  onClick={() => setStyleTag((cur) => (cur === t.key ? null : t.key))}
+                  style={{
+                    padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 500,
+                    border: `1px solid ${styleTag === t.key ? 'var(--accent-solid)' : 'rgba(255,255,255,0.12)'}`,
+                    background: styleTag === t.key ? 'rgba(124,58,237,0.18)' : 'transparent',
+                    color: 'var(--fg)', cursor: 'pointer',
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {pipeline === 'fast' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+              <LabeledField label="Tone">
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {Object.entries(TONE_PRESET_LABELS).map(([key, label]) => (
+                    <button
+                      key={key} type="button" disabled={busy}
+                      onClick={() => setPipelineTone(key)}
+                      style={{
+                        padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 500,
+                        border: `1px solid ${pipelineTone === key ? 'var(--accent-solid)' : 'rgba(255,255,255,0.12)'}`,
+                        background: pipelineTone === key ? 'rgba(124,58,237,0.18)' : 'transparent',
+                        color: 'var(--fg)', cursor: 'pointer',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </LabeledField>
+              <LabeledField label="Writer (pitches the story)">
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[['gemini', 'Gemini'], ['grok', 'Grok']].map(([key, label]) => (
+                    <button
+                      key={key} type="button" disabled={busy}
+                      onClick={() => setWriter(key)}
+                      style={{
+                        padding: '7px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 500,
+                        border: `1px solid ${writer === key ? 'var(--accent-solid)' : 'rgba(255,255,255,0.12)'}`,
+                        background: writer === key ? 'rgba(124,58,237,0.18)' : 'transparent',
+                        color: 'var(--fg)', cursor: 'pointer',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </LabeledField>
+            </div>
+          )}
+
           <button onClick={run} disabled={busy} className="btn-gradient" style={{ width: '100%', height: 44, opacity: busy ? 0.6 : 1 }}>
-            {busy ? 'Writing… (~30-45s, real multi-model pass)' : 'Generate Script'}
+            {busy
+              ? (pipeline === 'fast' ? 'Writing… (~10-15s)' : 'Writing… (~30-45s, real multi-model pass)')
+              : 'Generate Script'}
           </button>
         </>
       )}
