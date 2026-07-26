@@ -1,10 +1,23 @@
+import { after } from 'next/server'
 import { createClient } from '../../../../lib/supabase/server'
 import { initializeRun, runShotGeneration } from '../../../../lib/adbuilder/shots.js'
 
 // The real "finish" gate: everything up to here (ingest/script/preview)
 // is free and open; generating the real multi-shot ad requires a signed-
 // in user, same auth already wired for the rest of this app.
-export const maxDuration = 60
+//
+// Real production bug fixed here: real shots never generated at all on
+// Vercel - schema created fine, but every shot stayed stuck at 'pending'
+// forever with no error. Root cause: runShotGeneration was fired without
+// awaiting it so the response could return immediately (see the comment
+// below), which works on a persistent Node server but not on a serverless
+// platform - Vercel freezes/kills the function's execution the moment the
+// response is sent, so the un-awaited background work never actually ran.
+// Next's after() explicitly keeps the function alive until its callback
+// settles, even after the response has gone out. maxDuration raised to
+// cover real worst-case shot generation time (Hailuo's own poll budget in
+// hailuo-video.js is up to 45 * 8s = 360s per shot).
+export const maxDuration = 300
 
 export async function POST(req) {
   try {
@@ -22,7 +35,7 @@ export async function POST(req) {
     // 3s poll can show shots landing one by one instead of the client
     // sitting on one static spinner for the whole multi-minute run.
     const schema = await initializeRun(runId, brief, script, options, user.id)
-    runShotGeneration(runId, brief).catch((e) => console.error(`[adbuilder] run ${runId} generation failed:`, e.message))
+    after(() => runShotGeneration(runId, brief).catch((e) => console.error(`[adbuilder] run ${runId} generation failed:`, e.message)))
 
     // Record it to the account, via the user's own session so RLS's
     // "insert own projects" policy applies - same pattern 0004's comment
