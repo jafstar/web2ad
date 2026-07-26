@@ -1,3 +1,4 @@
+import { createClient } from '../../../../../lib/supabase/server'
 import { renderTextFrame } from '../../../../../lib/adbuilder/htmlTextRenderer.js'
 
 // Real feasibility smoke test for @sparticuz/chromium + playwright-core
@@ -10,6 +11,10 @@ export const maxDuration = 60
 
 export async function POST(req) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 })
+
     const start = Date.now()
     const imageDataUrl = await renderTextFrame({
       bodyHtml: `<div style="text-align:center;color:#f4ede1;">
