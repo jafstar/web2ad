@@ -18,6 +18,7 @@ function BeatFinishInner() {
   const [error, setError] = useState(null)
   const [phase, setPhase] = useState('loading') // loading -> confirm -> generating -> ready
   const [forking, setForking] = useState(false)
+  const [autoCountdown, setAutoCountdown] = useState(null) // null = no timer running; number = seconds left
 
   // Two ways to land here: a fresh free-preview handoff (?stash=..., needs
   // an explicit click before the real generation starts) or reopening a
@@ -60,6 +61,29 @@ function BeatFinishInner() {
     })()
     return () => { cancelled = true }
   }, [stashId, existingRunId])
+
+  // Real friction this removes: clicking "Generate Full Ad & Download" on
+  // step 2 IS the real confirmation - a second manual click here, after
+  // whatever login/signup detour, was pure redundant friction. Auto-fires
+  // after a short countdown instead, with an easy cancel if someone
+  // landed here by mistake or wants a moment to actually read the scene
+  // 1 preview first.
+  useEffect(() => {
+    if (phase !== 'confirm') return
+    setAutoCountdown(10)
+  }, [phase])
+
+  useEffect(() => {
+    if (autoCountdown === null) return
+    if (autoCountdown <= 0) {
+      setAutoCountdown(null)
+      startGenerate()
+      return
+    }
+    const t = setTimeout(() => setAutoCountdown((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCountdown])
 
   async function startGenerate() {
     setPhase('generating'); setError(null)
@@ -129,7 +153,17 @@ function BeatFinishInner() {
             <p style={{ color: 'var(--mist)', fontSize: 14, marginBottom: 24 }}>
               {stashData.script?.beats?.length || 0} scenes, real motion and narration throughout — takes a few minutes once it starts.
             </p>
-            <button onClick={startGenerate} className="btn-gradient" style={{ width: '100%', height: 48 }}>Generate My Ad</button>
+            {autoCountdown !== null ? (
+              <>
+                <p style={{ color: 'var(--mist)', fontSize: 13, marginBottom: 12 }}>Starting in {autoCountdown}s…</p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setAutoCountdown(null)} className="btn-ghost" style={{ flex: 1, height: 48 }}>Wait, cancel</button>
+                  <button onClick={startGenerate} className="btn-gradient" style={{ flex: 1, height: 48 }}>Generate Now</button>
+                </div>
+              </>
+            ) : (
+              <button onClick={startGenerate} className="btn-gradient" style={{ width: '100%', height: 48 }}>Generate My Ad</button>
+            )}
           </div>
         )}
         {phase === 'generating' && (
