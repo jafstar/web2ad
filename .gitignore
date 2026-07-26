@@ -48,3 +48,6 @@ next-env.d.ts
 # raw client reference assets (real client photos/logos) - not used by
 # any app code, not something to carry into a public repo's history
 CLIENTS/
+test-*.jpg
+test-*.mp3
+test-*.mp4
