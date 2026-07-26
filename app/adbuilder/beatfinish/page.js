@@ -17,6 +17,7 @@ function BeatFinishInner() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [phase, setPhase] = useState('loading') // loading -> confirm -> generating -> ready
+  const [forking, setForking] = useState(false)
 
   // Two ways to land here: a fresh free-preview handoff (?stash=..., needs
   // an explicit click before the real generation starts) or reopening a
@@ -35,7 +36,7 @@ function BeatFinishInner() {
           const proj = data.projects?.find((p) => p.data?.v2 && p.data?.runId === existingRunId)
           if (!proj) throw new Error('Could not find that ad')
           if (cancelled) return
-          setResult({ url: proj.data.videoUrl, durationSeconds: proj.data.durationSeconds, beatCount: proj.data.beatCount })
+          setResult({ url: proj.data.videoUrl, durationSeconds: proj.data.durationSeconds, beatCount: proj.data.beatCount, runId: existingRunId })
           setPhase('ready')
         } catch (err) {
           if (!cancelled) setError(err.message)
@@ -88,6 +89,22 @@ function BeatFinishInner() {
     }
   }
 
+  async function forkToEdit() {
+    setForking(true); setError(null)
+    try {
+      const res = await fetch('/api/adbuilder/beatedit/fork', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ runId: result.runId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not fork this ad')
+      window.location.href = `/adbuilder/beatedit?run=${data.runId}`
+    } catch (err) {
+      setError(err.message)
+      setForking(false)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh' }}>
       <SiteHeader />
@@ -128,12 +145,17 @@ function BeatFinishInner() {
               src={result.url} controls autoPlay muted loop playsInline
               style={{ width: '100%', borderRadius: 10, marginBottom: 20, display: 'block', background: '#000' }}
             />
-            <a
-              href={result.url} download="ad.mp4"
-              className="btn-gradient" style={{ display: 'block', width: '100%', textAlign: 'center', height: 48, lineHeight: '48px', textDecoration: 'none' }}
-            >
-              Download Your Ad
-            </a>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <a
+                href={result.url} download="ad.mp4"
+                className="btn-gradient" style={{ flex: 1, minWidth: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, textDecoration: 'none' }}
+              >
+                Download Your Ad
+              </a>
+              <button onClick={forkToEdit} disabled={forking} className="btn-ghost" style={{ flex: 1, minWidth: 200, height: 48, opacity: forking ? 0.6 : 1 }}>
+                {forking ? 'Forking…' : 'Fork to Edit'}
+              </button>
+            </div>
           </div>
         )}
       </div>

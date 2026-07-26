@@ -77,11 +77,17 @@ export async function POST(req) {
           runId,
           businessName: brief.businessName,
           whatTheyDo: brief.whatTheyDo,
+          // Full brief/beats/atmosphere kept here (not just the summary
+          // fields above) so a later "Fork to Edit" has everything it
+          // needs to regenerate individual beats and re-composite -
+          // see beatedit/fork/route.js, which clones this data verbatim.
+          brief,
+          atmosphere: result.atmosphere,
+          beats: result.beats,
           videoUrl: result.url,
           sceneImageUrl: result.beats?.[0]?.keyframeUrl || null,
           durationSeconds: result.durationSeconds,
           beatCount: result.beatCount,
-          atmosphere: result.atmosphere,
           take: (count || 0) + 1,
         },
       })

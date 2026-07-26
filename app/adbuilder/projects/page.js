@@ -63,7 +63,10 @@ export default function AdProjectsPage() {
             {projects.map((p) => {
               const runId = p.data?.runId
               const isV2 = !!p.data?.v2
-              const editHref = isV2
+              const isFork = isV2 && !!p.data?.editable
+              const editHref = isFork
+                ? `/adbuilder/beatedit?run=${encodeURIComponent(runId)}`
+                : isV2
                 ? `/adbuilder/beatfinish?run=${encodeURIComponent(runId)}`
                 : p.status === 'pending'
                 ? `/adbuilder/finish?stash=${encodeURIComponent(p.data?.stashId)}`
@@ -95,6 +98,9 @@ export default function AdProjectsPage() {
                       {p.data?.take > 1 && (
                         <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.15)', color: 'var(--accent-solid)' }}>Take {p.data.take}</span>
                       )}
+                      {isFork && (
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: 'rgba(56,189,248,0.15)', color: 'var(--blue-glow)' }}>Fork</span>
+                      )}
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--mist)', fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
                       {new Date(p.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
@@ -103,7 +109,7 @@ export default function AdProjectsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Link href={editHref} className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', fontSize: 12.5, textDecoration: 'none' }}>
                         <Pencil size={12} />
-                        {isV2 ? 'View' : p.status === 'pending' ? 'Continue' : 'Edit'}
+                        {isFork ? 'Edit' : isV2 ? 'View' : p.status === 'pending' ? 'Continue' : 'Edit'}
                       </Link>
                       {p.status === 'done' && (
                         <a href={downloadHref} download="ad.mp4" className="btn-gradient" style={{ padding: '7px 16px', fontSize: 13, textDecoration: 'none' }}>
