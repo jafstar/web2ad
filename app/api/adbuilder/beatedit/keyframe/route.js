@@ -8,6 +8,14 @@ import { generateKeyframeFor } from '../../../../../lib/adbuilder/shots.js'
 // the whole ad. Clears that beat's renderUrl since its motion clip was
 // generated from the OLD image and is now stale - the edit UI should
 // prompt for a motion regenerate next, not silently keep a mismatched clip.
+//
+// referenceImageDataUrl (optional): a real photo the business owner
+// uploaded client-side (never a Google review/third-party photo - see
+// docs/real-footage-sourcing.md for why that's off the table). Passed
+// straight through to generateFlux's existing reference-conditioning
+// (mode 'similar', same mode continuity chaining already uses) so the
+// generated scene is visually guided by their own real space/product
+// instead of a pure text-only guess.
 export const maxDuration = 60
 
 export async function POST(req) {
@@ -16,7 +24,7 @@ export async function POST(req) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 })
 
-    const { runId, beatId, fixNote } = await req.json()
+    const { runId, beatId, fixNote, referenceImageDataUrl } = await req.json()
     if (!runId || !beatId) return Response.json({ error: 'Missing runId or beatId' }, { status: 400 })
 
     const project = await loadEditableProject(supabase, user, runId)
@@ -24,7 +32,7 @@ export async function POST(req) {
     const beat = beats.find((b) => b.id === beatId)
     if (!beat) return Response.json({ error: 'Beat not found' }, { status: 404 })
 
-    const { url } = await generateKeyframeFor(runId, beatId, beat.visual, project.data.brief, project.data.atmosphere, fixNote || '')
+    const { url } = await generateKeyframeFor(runId, beatId, beat.visual, project.data.brief, project.data.atmosphere, fixNote || '', referenceImageDataUrl || null)
     beat.keyframeUrl = url
     beat.renderUrl = null
 

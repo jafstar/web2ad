@@ -40,12 +40,12 @@ function BeatEditInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId])
 
-  async function regenImage(beatId, fixNote) {
+  async function regenImage(beatId, fixNote, referenceImageDataUrl) {
     setBusyBeatId(beatId); setBusyAction('image'); setError(null)
     try {
       const res = await fetch('/api/adbuilder/beatedit/keyframe', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runId, beatId, fixNote }),
+        body: JSON.stringify({ runId, beatId, fixNote, referenceImageDataUrl }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not regenerate that image')
@@ -156,7 +156,7 @@ function BeatEditInner() {
                 key={beat.id}
                 beat={beat}
                 busy={busyBeatId === beat.id ? busyAction : null}
-                onRegenImage={(fixNote) => regenImage(beat.id, fixNote)}
+                onRegenImage={(fixNote, referenceImageDataUrl) => regenImage(beat.id, fixNote, referenceImageDataUrl)}
                 onRegenMotion={() => regenMotion(beat.id)}
               />
             ))}
@@ -167,8 +167,46 @@ function BeatEditInner() {
   )
 }
 
+// Downscales an uploaded photo client-side before it ever becomes a data
+// URL - a phone photo can be 4-8MB, well past what's needed for a Flux
+// reference image and close to Vercel's request body limit. 1024px on the
+// long edge matches the keyframe generation size elsewhere in this
+// pipeline, so there's no real quality left on the table.
+function resizeImageFile(file, maxDim = 1024, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.onerror = () => reject(new Error('Could not read that image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 function BeatRow({ beat, busy, onRegenImage, onRegenMotion }) {
   const [fixNote, setFixNote] = useState('')
+  const [referencePreview, setReferencePreview] = useState(null)
+  const [referenceError, setReferenceError] = useState(null)
+
+  async function handleReferenceUpload(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setReferenceError(null)
+    try {
+      const dataUrl = await resizeImageFile(file)
+      setReferencePreview(dataUrl)
+    } catch (err) {
+      setReferenceError(err.message)
+    }
+  }
+
   return (
     <div className="card" style={{ padding: 18, display: 'grid', gridTemplateColumns: '120px 1fr', gap: 16 }}>
       {beat.keyframeUrl ? (
@@ -191,8 +229,23 @@ function BeatRow({ beat, busy, onRegenImage, onRegenMotion }) {
           value={fixNote} onChange={(e) => setFixNote(e.target.value)}
           style={{ width: '100%', height: 34, fontSize: 13, padding: '0 10px', marginBottom: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)' }}
         />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          {referencePreview && (
+            <img src={referencePreview} alt="Your reference photo" style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'cover' }} />
+          )}
+          <label className="btn-ghost" style={{ padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}>
+            {referencePreview ? 'Change your photo' : 'Use your own photo as reference'}
+            <input type="file" accept="image/*" onChange={handleReferenceUpload} style={{ display: 'none' }} />
+          </label>
+          {referencePreview && (
+            <button onClick={() => setReferencePreview(null)} className="btn-ghost" style={{ padding: '5px 10px', fontSize: 12 }}>Clear</button>
+          )}
+        </div>
+        {referenceError && <div style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{referenceError}</div>}
+
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => onRegenImage(fixNote)} disabled={!!busy} className="btn-ghost" style={{ padding: '6px 14px', fontSize: 12.5, opacity: busy ? 0.6 : 1 }}>
+          <button onClick={() => onRegenImage(fixNote, referencePreview)} disabled={!!busy} className="btn-ghost" style={{ padding: '6px 14px', fontSize: 12.5, opacity: busy ? 0.6 : 1 }}>
             {busy === 'image' ? 'Regenerating…' : 'Regenerate Image'}
           </button>
           <button onClick={onRegenMotion} disabled={!!busy || !beat.keyframeUrl} className="btn-ghost" style={{ padding: '6px 14px', fontSize: 12.5, opacity: busy || !beat.keyframeUrl ? 0.6 : 1 }}>
