@@ -1,4 +1,5 @@
 import { createClient } from '../../../../lib/supabase/server'
+import { createAdminClient } from '../../../../lib/supabase/admin'
 import { buildBeatAd } from '../../../../lib/adbuilder/beatPipeline.js'
 
 // Step 3 of the v2 funnel - the real signup gate (same rule as v1's
@@ -15,11 +16,43 @@ export async function POST(req) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'Sign in to generate your full ad' }, { status: 401 })
 
-    const { brief, beats, atmosphere } = await req.json()
+    const { brief, beats, atmosphere, stashId } = await req.json()
     if (!brief || !beats?.length) return Response.json({ error: 'Missing brief or beats' }, { status: 400 })
 
+    // Real bug this guards against, live-caught: the beatfinish page never
+    // invalidated its stash or swapped its URL after a successful
+    // generation, so bouncing back through /login (which auto-redirects
+    // straight through if already signed in) could replay the exact same
+    // still-valid stash and fire a second real, costly generation for the
+    // same ad. Claiming the stash - delete it and check a row actually
+    // came back - BEFORE spending anything makes only the first request
+    // to reach here actually proceed; a replay (or a fast double-click)
+    // finds nothing left to claim and fails immediately, before any real
+    // API cost. Best-effort no-op if no stashId was sent (e.g. a retry
+    // after a genuine failure where the page still holds stashData).
+    let claimedStashRow = null
+    if (stashId) {
+      const admin = createAdminClient()
+      const { data: claimed } = await admin.from('adbuilder_stash').delete().eq('id', stashId).select('id, brief, script, preview_image_url')
+      if (!claimed?.length) return Response.json({ error: 'This ad has already been generated, or your link has expired.' }, { status: 409 })
+      claimedStashRow = claimed[0]
+    }
+
     const runId = `beat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const result = await buildBeatAd(runId, brief, { beats, atmosphere })
+    let result
+    try {
+      result = await buildBeatAd(runId, brief, { beats, atmosphere })
+    } catch (e) {
+      // A genuine failure (transient Hailuo error, etc.) has nothing to
+      // do with replay protection - restore the claimed stash so the
+      // user can retry from the same confirm screen instead of losing
+      // their ad data over an unrelated error.
+      if (claimedStashRow) {
+        const admin = createAdminClient()
+        await admin.from('adbuilder_stash').insert(claimedStashRow).then(null, (restoreErr) => console.error('adbuilder/beatrun: failed to restore stash after error:', restoreErr.message))
+      }
+      throw e
+    }
 
     // Record it to "My Ads" only once the real video exists - v2 has no
     // in-progress/pending state to track (the whole build already

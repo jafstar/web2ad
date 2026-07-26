@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import SiteHeader from '../../../components/SiteHeader'
 
 // v2's "finish" page - mirrors v1's finish/page.js confirm/generating/
@@ -10,6 +10,7 @@ import SiteHeader from '../../../components/SiteHeader'
 // and the result renders straight to a video + download button.
 function BeatFinishInner() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const stashId = searchParams.get('stash')
   const existingRunId = searchParams.get('run')
   const [stashData, setStashData] = useState(null)
@@ -65,12 +66,22 @@ function BeatFinishInner() {
       const { brief, script } = stashData
       const res = await fetch('/api/adbuilder/beatrun', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, beats: script.beats, atmosphere: script.atmosphere }),
+        body: JSON.stringify({ brief, beats: script.beats, atmosphere: script.atmosphere, stashId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not generate your ad')
       setResult(data)
       setPhase('ready')
+      // Real bug this fixes, live-caught: this page used to stay on
+      // ?stash= for its whole lifetime, so bouncing back through /login
+      // (which auto-redirects straight through when already signed in)
+      // landed right back on a confirm screen still pointing at a
+      // technically-consumed stash - swapping the URL to ?run= here means
+      // a return trip reopens the finished ad read-only (see the
+      // existingRunId branch above) instead of re-offering "Generate My
+      // Ad". The server-side claim in beatrun/route.js is the real
+      // backstop; this just keeps the URL honest for the common case.
+      router.replace(`/adbuilder/beatfinish?run=${data.runId}`)
     } catch (err) {
       setError(err.message)
       setPhase('confirm')
