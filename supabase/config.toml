@@ -147,9 +147,18 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://localhost:3000"
+site_url = "https://www.web2ad.com"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/auth/callback"]
+# Real bug this avoids repeating: this only listed localhost before, which
+# would have silently bounced production magic-link clicks back to
+# whatever the project's dashboard Site URL happened to be - same failure
+# mode as the genstock/web2ad mixup found earlier tonight.
+additional_redirect_urls = [
+  "http://localhost:3000", "http://localhost:3000/auth/callback",
+  "https://www.web2ad.com", "https://www.web2ad.com/auth/callback",
+  "https://web2ad.com", "https://web2ad.com/auth/callback",
+  "https://web2ad.vercel.app", "https://web2ad.vercel.app/auth/callback",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
