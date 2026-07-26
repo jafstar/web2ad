@@ -1,46 +1,59 @@
-import Link from 'next/link'
-import SiteHeader from '../components/SiteHeader'
-import HeroStack from './HeroStack'
+'use client'
 
-// Real saved-up marketing (mailbox/artifacts/gen-stock/genstock-hero.html
-// + genstock-launch-plan.md, sync-agent repo) — copy and ink/amber visual
-// direction kept as originally written, not the black/white hairline-rule
-// redesign a design-review pass had pushed toward. Proof section uses
-// real screenshots of the shipped app (Intake + Critique) instead of an
-// abstract animated demo console.
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import SiteHeader from '../components/SiteHeader'
+
+// Real friction point (same fix as the /adbuilder wizard's own input):
+// typing "yourbusiness.com" without a scheme is the natural thing to do.
+function normalizeUrl(value) {
+  const trimmed = value.trim()
+  if (!trimmed || /^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+// Rebuilt on top of the genstock fork's real design system (dark neutral
+// bg, Fraunces/Inter/JetBrains Mono, gradient accent, .card panel style —
+// see globals.css). Real change, 2026-07-25: the old two-column hero
+// (pitch text + VideoHero) is gone in favor of the actual product action
+// itself - paste a url, land straight on /adbuilder with ingest already
+// running (see AdBuilderWizard's ?url= handoff), skipping a second retype
+// of the same url on the wizard's own step 1.
 export default function LandingPage() {
+  const [url, setUrl] = useState('')
+  const router = useRouter()
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    const normalized = normalizeUrl(url)
+    if (!normalized) return
+    router.push(`/adbuilder?url=${encodeURIComponent(normalized)}`)
+  }
+
   return (
     <div style={{ minHeight: '100vh' }}>
       <SiteHeader />
 
-      <div className="hero-grid" style={{ display: 'grid', gridTemplateColumns: '0.7fr 1.3fr', alignItems: 'center', gap: 40, padding: '56px 56px' }}>
-        <div style={{ maxWidth: 520 }}>
-          <div className="eyebrow" style={{ marginBottom: 22 }}>Zero Searching, Zero Prompts</div>
-          <h1 style={{ fontSize: 'clamp(38px, 4.4vw, 62px)', lineHeight: 1.04, letterSpacing: '-0.01em', marginBottom: 24 }}>
-            If images had <em className="gradient-text" style={{ fontStyle: 'italic' }}>keyboards</em><br />— this is it.
-          </h1>
-          <p style={{ fontSize: 16.5, lineHeight: 1.6, color: 'var(--mist)', maxWidth: 440, marginBottom: 36 }}>
-            Generate across multiple sources at once, watch the council pick the strongest options, and curate down to the one worth keeping. No blank prompt box. No single model guessing alone.
-          </p>
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 28 }}>
-            <Link href="/app" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', height: 48, padding: '0 28px' }}>Start generating</Link>
-            <Link href="/features" className="btn-ghost">See how it works →</Link>
-          </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase' }}>
-            3 free rounds to start · no card required
-          </div>
-        </div>
+      <div style={{ textAlign: 'center', maxWidth: 720, margin: '0 auto', padding: '72px 32px 56px' }}>
+        <h1 style={{ fontSize: 'clamp(38px, 4.4vw, 60px)', lineHeight: 1.04, letterSpacing: '-0.01em', marginBottom: 20 }}>
+          Turn any URL into a <em className="gradient-text" style={{ fontStyle: 'italic' }}>Commercial</em>
+        </h1>
+        <p style={{ fontSize: 16.5, lineHeight: 1.6, color: 'var(--mist)', maxWidth: 480, margin: '0 auto 36px' }}>
+          It writes the story, casts the shots, generates the video, scores the music, and voices the read.
+        </p>
 
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <HeroStack />
-        </div>
+        <form onSubmit={handleSubmit} style={{ maxWidth: 560, margin: '0 auto' }}>
+          <input
+            type="text" required placeholder="yourbusiness.com"
+            value={url} onChange={(e) => setUrl(e.target.value)}
+            onBlur={(e) => setUrl(normalizeUrl(e.target.value))}
+            style={{ width: '100%', height: 64, fontSize: 20, padding: '0 20px', marginBottom: 16 }}
+          />
+          <button type="submit" className="btn-gradient" style={{ width: '100%', height: 56, fontSize: 16 }}>
+            Start
+          </button>
+        </form>
       </div>
-
-      <style>{`
-        @media (max-width: 900px) {
-          .hero-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
     </div>
   )
 }

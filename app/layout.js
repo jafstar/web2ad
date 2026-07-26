@@ -1,8 +1,8 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'genstock — Images galore, chosen not guessed',
-  description: 'Generate across multiple AI sources at once, watch the council pick the strongest options, and curate down to the one worth keeping.',
+  title: 'Web2Ad — Any business, turned into a real ad overnight',
+  description: 'Feed it a logo, a few photos, and what the business actually is. Web2Ad writes the story, generates the video, scores the music, and voices the read — a real Genmercial, no camera or studio required.',
 }
 
 export default function RootLayout({ children }) {

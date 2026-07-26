@@ -40,3 +40,11 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# real generated test media from tonight's adbuilder testing - large,
+# ephemeral, no reason to version-control
+.adbuilder-runs/
+
+# raw client reference assets (real client photos/logos) - not used by
+# any app code, not something to carry into a public repo's history
+CLIENTS/

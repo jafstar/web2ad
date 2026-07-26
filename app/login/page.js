@@ -18,9 +18,11 @@ function LoginForm() {
     setBusy(true)
     setError(null)
     const supabase = createClient()
+    const next = searchParams.get('next')
+    const callbackUrl = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: callbackUrl },
     })
     setBusy(false)
     if (error) setError(error.message)
