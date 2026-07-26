@@ -20,6 +20,9 @@ function BeatEditInner() {
   const [busyBeatId, setBusyBeatId] = useState(null)
   const [busyAction, setBusyAction] = useState(null)
   const [rendering, setRendering] = useState(false)
+  const [outroEnabled, setOutroEnabled] = useState(true)
+  const [outroText, setOutroText] = useState('')
+  const [outroInitialized, setOutroInitialized] = useState(false)
 
   async function loadProject() {
     try {
@@ -29,6 +32,15 @@ function BeatEditInner() {
       const proj = data.projects?.find((p) => p.data?.v2 && p.data?.editable && p.data?.runId === runId)
       if (!proj) throw new Error('Could not find that editable ad')
       setProject(proj)
+      // Only seed the outro controls from persisted data on the FIRST
+      // load - every other action here (regen image/motion, save phrase)
+      // also reloads the project, and re-seeding on every reload would
+      // silently discard an in-progress, not-yet-rendered outro edit.
+      if (!outroInitialized) {
+        setOutroEnabled(proj.data.brief?.outroEnabled !== false)
+        setOutroText(proj.data.brief?.outroText || proj.data.brief?.mascotNote || '')
+        setOutroInitialized(true)
+      }
     } catch (err) {
       setError(err.message)
     }
@@ -96,7 +108,7 @@ function BeatEditInner() {
     try {
       const res = await fetch('/api/adbuilder/beatedit/render', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runId }),
+        body: JSON.stringify({ runId, outroEnabled, outroText }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not re-render this ad')
@@ -154,6 +166,20 @@ function BeatEditInner() {
               key={project.data.videoUrl} src={project.data.videoUrl} controls playsInline
               style={{ width: '100%', borderRadius: 10, marginBottom: 16, display: 'block', background: '#000' }}
             />
+            <div style={{ padding: '14px 16px', marginBottom: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: outroEnabled ? 10 : 0 }}>
+                <input type="checkbox" checked={outroEnabled} onChange={(e) => setOutroEnabled(e.target.checked)} style={{ width: 16, height: 16 }} />
+                <span style={{ fontSize: 14, fontWeight: 500 }}>Add a branded ending</span>
+              </label>
+              {outroEnabled && (
+                <textarea
+                  placeholder="Optional tagline or description (e.g. a mascot or character to mention)"
+                  value={outroText} onChange={(e) => setOutroText(e.target.value)}
+                  style={{ width: '100%', minHeight: 46, resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '8px 12px', fontSize: 13, fontFamily: 'Inter, sans-serif' }}
+                />
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button onClick={reRender} disabled={rendering || !allReady} className="btn-gradient" style={{ flex: 1, minWidth: 200, height: 44, opacity: rendering || !allReady ? 0.6 : 1 }}>
                 {rendering ? 'Re-rendering… (~1-2 min)' : allReady ? 'Re-render Ad With Edits' : 'Finish pending beats to re-render'}

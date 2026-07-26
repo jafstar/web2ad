@@ -41,6 +41,8 @@ function BeatAdWizardInner() {
   const [atmosphere, setAtmosphere] = useState(null)
   const [narratorAudioUrl, setNarratorAudioUrl] = useState(null)
   const [sceneImageUrl, setSceneImageUrl] = useState(null)
+  const [outroEnabled, setOutroEnabled] = useState(true)
+  const [outroText, setOutroText] = useState('')
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('')
   const [error, setError] = useState(null)
@@ -66,6 +68,11 @@ function BeatAdWizardInner() {
       const ingestData = await ingestRes.json()
       if (!ingestRes.ok) throw new Error(ingestData.error || 'Could not analyze that')
       setBrief(ingestData.brief)
+      // Pre-fill the outro text with whatever real mascot/character we
+      // actually detected on their site (docs/real-footage-sourcing.md /
+      // brandExtract.js) - a real starting point to confirm or edit, not
+      // a blank field they have to fill from scratch.
+      if (ingestData.brief.mascotNote) setOutroText(ingestData.brief.mascotNote)
 
       setBusyLabel('Writing your story + rendering scene 1… (~30-45s)')
       const previewRes = await fetch('/api/adbuilder/beatpreview', {
@@ -112,9 +119,10 @@ function BeatAdWizardInner() {
   async function goGenerate() {
     setBusy(true); setError(null)
     try {
+      const briefWithOutro = { ...brief, outroEnabled, outroText: outroEnabled ? outroText.trim() : '' }
       const res = await fetch('/api/adbuilder/stash', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, script: { mode: 'beat', beats, atmosphere, sceneImageUrl }, previewImage: null }),
+        body: JSON.stringify({ brief: briefWithOutro, script: { mode: 'beat', beats, atmosphere, sceneImageUrl }, previewImage: null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not continue to signup')
@@ -258,6 +266,25 @@ function BeatAdWizardInner() {
                   </div>
                 </div>
               )}
+
+              <div className="card" style={{ padding: '16px 18px', marginBottom: 20, background: 'rgba(255,255,255,0.02)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: outroEnabled ? 12 : 0 }}>
+                  <input type="checkbox" checked={outroEnabled} onChange={(e) => setOutroEnabled(e.target.checked)} style={{ width: 16, height: 16 }} />
+                  <span style={{ fontSize: 14, fontWeight: 500 }}>Add a branded ending</span>
+                </label>
+                {outroEnabled && (
+                  <>
+                    <div style={{ fontSize: 12.5, color: 'var(--mist)', marginBottom: 8 }}>
+                      Your business name{brief?.phoneNumber ? ' and phone number' : ''} on a closing card, in your real site colors.
+                    </div>
+                    <textarea
+                      placeholder="Optional tagline or description (e.g. a mascot or character to mention)"
+                      value={outroText} onChange={(e) => setOutroText(e.target.value)}
+                      style={{ width: '100%', minHeight: 50, resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '8px 12px', fontSize: 13, fontFamily: 'Inter, sans-serif' }}
+                    />
+                  </>
+                )}
+              </div>
 
               <button onClick={goGenerate} className="btn-gradient" disabled={busy} style={{ width: '100%', height: 48, opacity: busy ? 0.6 : 1 }}>
                 {busy ? 'One sec…' : 'Generate Full Ad & Download'}

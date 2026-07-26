@@ -27,7 +27,7 @@ export async function POST(req) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 })
 
-    const { runId } = await req.json()
+    const { runId, outroEnabled, outroText } = await req.json()
     if (!runId) return Response.json({ error: 'Missing runId' }, { status: 400 })
 
     const project = await loadEditableProject(supabase, user, runId)
@@ -38,11 +38,17 @@ export async function POST(req) {
     const apiKey = process.env.ELEVEN_LABS_API_KEY
     if (!apiKey) return Response.json({ error: 'ELEVEN_LABS_API_KEY not configured' }, { status: 500 })
 
+    // Outro toggle/text are edited here, not on a separate save endpoint -
+    // whatever the editor's controls currently show is what this render
+    // uses AND what gets persisted, so reopening the editor later reflects
+    // the last real render's settings.
+    const updatedBrief = { ...project.data.brief, outroEnabled: outroEnabled !== false, outroText: outroEnabled !== false ? (outroText || '').trim() : '' }
+
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'adbuilder-beatedit-render-'))
     let result
     try {
       await synthesizeBeatAudio(beats, tmp, apiKey)
-      result = await composeBeatAd(runId, project.data.brief, beats)
+      result = await composeBeatAd(runId, updatedBrief, beats)
     } finally {
       try { fs.rmSync(tmp, { recursive: true, force: true }) } catch {}
     }
@@ -52,6 +58,7 @@ export async function POST(req) {
     const cleanBeats = beats.map(({ audioPath, ...rest }) => rest)
     await saveProjectData(supabase, project.id, {
       ...project.data,
+      brief: updatedBrief,
       beats: cleanBeats,
       videoUrl: result.url,
       durationSeconds: result.durationSeconds,
