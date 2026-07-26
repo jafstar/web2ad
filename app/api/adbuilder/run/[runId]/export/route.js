@@ -1,5 +1,5 @@
-import fs from 'fs'
-import { exportFinalAd, exportFilePath } from '../../../../../../lib/adbuilder/exportAd.js'
+import { exportFinalAd } from '../../../../../../lib/adbuilder/exportAd.js'
+import { readSchema } from '../../../../../../lib/adbuilder/shots.js'
 
 // Real, potentially slow composite (TTS + music + multi-clip ffmpeg concat)
 // - shorter than the per-shot generation step but still genuinely slow.
@@ -16,10 +16,15 @@ export async function POST(req, { params }) {
   }
 }
 
+// Final export now lives on Cloudinary (schema.export.url) instead of
+// local disk - redirect the same way media/route.js does.
 export async function GET(req, { params }) {
   const { runId } = await params
-  const filePath = exportFilePath(runId)
-  if (!fs.existsSync(filePath)) return Response.json({ error: 'Not exported yet' }, { status: 404 })
-  const buf = fs.readFileSync(filePath)
-  return new Response(buf, { headers: { 'Content-Type': 'video/mp4' } })
+  try {
+    const schema = await readSchema(runId)
+    if (!schema.export?.url) return Response.json({ error: 'Not exported yet' }, { status: 404 })
+    return Response.redirect(schema.export.url, 302)
+  } catch (e) {
+    return Response.json({ error: 'Not exported yet' }, { status: 404 })
+  }
 }

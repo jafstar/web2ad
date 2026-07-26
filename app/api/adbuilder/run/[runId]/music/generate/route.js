@@ -7,7 +7,7 @@ export async function POST(req, { params }) {
   try {
     const { runId } = await params
     const { previewUrl, genre } = await req.json()
-    const schema = readSchema(runId)
+    const schema = await readSchema(runId)
     const totalDuration = schema.shots.reduce((sum, s) => sum + (s.disabled ? 0 : s.durationSeconds), 0)
     const option = await generateMusicOption(runId, { previewUrl, genre, durationSeconds: Math.max(totalDuration, 10) })
     return Response.json({ option })

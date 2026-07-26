@@ -47,17 +47,17 @@ export default function MusicEditor({ runId, schema, onChosen }) {
     }
   }
 
-  async function choose(filename) {
+  async function choose(url) {
     setBusy(true); setError(null)
     try {
       const res = await fetch(`/api/adbuilder/run/${runId}/music/choose`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename }),
+        body: JSON.stringify({ url }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setChosen(filename)
-      onChosen?.(filename)
+      setChosen(url)
+      onChosen?.(url)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -100,15 +100,15 @@ export default function MusicEditor({ runId, schema, onChosen }) {
           <div style={{ fontSize: 12, color: 'var(--mist)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Generated options</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {options.map((o) => (
-              <div key={o.filename} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <audio src={`/api/adbuilder/run/${runId}/music/file?f=${o.filename}`} controls style={{ height: 32, flex: 1 }} />
+              <div key={o.url} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <audio src={o.url} controls style={{ height: 32, flex: 1 }} />
                 <button
-                  type="button" disabled={busy || chosen === o.filename}
-                  onClick={() => choose(o.filename)}
-                  className={chosen === o.filename ? 'btn-gradient' : 'btn-ghost'}
+                  type="button" disabled={busy || chosen === o.url}
+                  onClick={() => choose(o.url)}
+                  className={chosen === o.url ? 'btn-gradient' : 'btn-ghost'}
                   style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}
                 >
-                  {chosen === o.filename ? 'Selected ✓' : 'Use this'}
+                  {chosen === o.url ? 'Selected ✓' : 'Use this'}
                 </button>
               </div>
             ))}

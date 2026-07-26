@@ -7,7 +7,7 @@ import { readSchema } from '../../../../../lib/adbuilder/shots.js'
 export async function GET(req, { params }) {
   try {
     const { runId } = await params
-    const schema = readSchema(runId)
+    const schema = await readSchema(runId)
     return Response.json({ schema })
   } catch (e) {
     return Response.json({ error: 'Run not found' }, { status: 404 })

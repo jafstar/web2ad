@@ -21,14 +21,14 @@ export async function POST(req) {
     // fired below without awaiting it, so ShotReview's already-existing
     // 3s poll can show shots landing one by one instead of the client
     // sitting on one static spinner for the whole multi-minute run.
-    const schema = await initializeRun(runId, brief, script, options)
+    const schema = await initializeRun(runId, brief, script, options, user.id)
     runShotGeneration(runId, brief).catch((e) => console.error(`[adbuilder] run ${runId} generation failed:`, e.message))
 
     // Record it to the account, via the user's own session so RLS's
     // "insert own projects" policy applies - same pattern 0004's comment
     // describes for genstock's photo projects. The real run/media data
-    // stays on disk under .adbuilder-runs/<runId>/; this row is just the
-    // account-scoped pointer + enough to show in a list.
+    // lives in the adbuilder_runs table (see runStore.js); this row is
+    // just the account-scoped pointer + enough to show in a list.
     const name = brief.businessName || 'Untitled ad'
     const patch = { runId, businessName: brief.businessName, whatTheyDo: brief.whatTheyDo }
 
