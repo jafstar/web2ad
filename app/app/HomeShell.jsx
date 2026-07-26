@@ -91,7 +91,7 @@ export default function HomeShell({ userEmail }) {
                 logo={
                   <HStack gap={2} align="center">
                     <GenstockLogo size={40} />
-                    <Text type="body" weight="semibold" style={{ fontSize: 20 }}>genstock</Text>
+                    <Text type="body" weight="semibold" style={{ fontSize: 20 }}>Web2Ad</Text>
                   </HStack>
                 }
               />
@@ -137,7 +137,7 @@ export default function HomeShell({ userEmail }) {
             }
             footerIcons={<SideNavCollapseButton />}
           >
-            <SideNavSection title="genstock">
+            <SideNavSection title="Web2Ad">
               <SideNavItem label="Overview" icon={LayoutDashboard} isSelected={section === 'overview'} onClick={openOverview} />
             </SideNavSection>
             {project && (
