@@ -34,6 +34,12 @@ export default function PlaygroundPage() {
   const [whatTheyDo, setWhatTheyDo] = useState('')
   const [tone, setTone] = useState('')
   const [trustSignals, setTrustSignals] = useState('')
+  // Real vertical routing built 2026-07-26 - auto-detected during ingest
+  // (same call that extracts businessName/whatTheyDo), drives a STRONG
+  // DEFAULT for shot framing + comedic register downstream (see
+  // lib/adbuilder/verticals.js), never a hard wall - editable here same
+  // as any other field.
+  const [vertical, setVertical] = useState('general')
   const [styleTag, setStyleTag] = useState(null)
   // Real, separate "writer room" pipeline requested live 2026-07-26 - two
   // calls (a single writer pitches, Claude edits/adds scenery) instead of
@@ -106,6 +112,7 @@ export default function PlaygroundPage() {
       setWhatTheyDo(data.brief.whatTheyDo || '')
       setTone(data.brief.tone || '')
       setTrustSignals((data.brief.trustSignals || []).join(', '))
+      setVertical(data.brief.vertical || 'general')
     } catch (err) {
       setScriptError(err.message)
     } finally {
@@ -122,6 +129,7 @@ export default function PlaygroundPage() {
         whatTheyDo: whatTheyDo.trim(),
         tone: tone.trim() || 'casual',
         trustSignals: trustSignals.split(',').map((s) => s.trim()).filter(Boolean),
+        vertical,
       }
       const res = await fetch('/api/adbuilder/script', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -178,6 +186,7 @@ export default function PlaygroundPage() {
                 whatTheyDo={whatTheyDo} setWhatTheyDo={setWhatTheyDo}
                 tone={tone} setTone={setTone}
                 trustSignals={trustSignals} setTrustSignals={setTrustSignals}
+                vertical={vertical} setVertical={setVertical}
                 styleTag={styleTag} setStyleTag={setStyleTag}
                 pipeline={pipeline} setPipeline={setPipeline}
                 pipelineTone={pipelineTone} setPipelineTone={setPipelineTone}
@@ -194,7 +203,7 @@ export default function PlaygroundPage() {
           </div>
         )}
 
-        {tab === 'shots' && <ShotsPlayground brief={{ businessName, whatTheyDo, tone, trustSignals }} script={script} />}
+        {tab === 'shots' && <ShotsPlayground brief={{ businessName, whatTheyDo, tone, trustSignals, vertical }} script={script} />}
         {tab === 'images' && <ImagePlayground />}
         {tab === 'music' && <MusicPlayground />}
       </div>
@@ -204,9 +213,12 @@ export default function PlaygroundPage() {
 
 const TONE_PRESET_LABELS = { professional: 'Professional', funny: 'Funny', cinematic: 'Cinematic', zen: 'Zen' }
 
+const VERTICAL_LABELS = { 'high-trust': 'High-Trust (medical/legal/financial)', food: 'Food & Beverage', tech: 'Software/B2B', 'home-services': 'Home Services', general: 'General' }
+
 function ScriptInputs({
   mode, setMode, url, setUrl, ingestBusy, runIngest,
   businessName, setBusinessName, whatTheyDo, setWhatTheyDo, tone, setTone, trustSignals, setTrustSignals,
+  vertical, setVertical,
   styleTag, setStyleTag, pipeline, setPipeline, pipelineTone, setPipelineTone, writer, setWriter,
   busy, error, run,
   favorites, loadFavorite, removeFavorite,
@@ -264,6 +276,16 @@ function ScriptInputs({
                 value={trustSignals} onChange={(e) => setTrustSignals(e.target.value)}
                 style={{ width: '100%', resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '10px 12px', fontSize: 14, fontFamily: 'Inter, sans-serif' }}
               />
+            </LabeledField>
+            <LabeledField label="Vertical (auto-detected from Website mode - drives framing/tone-register defaults)">
+              <select
+                value={vertical} onChange={(e) => setVertical(e.target.value)}
+                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '10px 12px', fontSize: 14, fontFamily: 'Inter, sans-serif' }}
+              >
+                {Object.entries(VERTICAL_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
             </LabeledField>
           </div>
 
