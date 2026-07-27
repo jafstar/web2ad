@@ -69,23 +69,30 @@ function BeatFinishInner() {
         if (cancelled) return
         setStashData(data)
         setPhase('confirm')
+        // Real friction this removes: clicking "Generate Full Ad &
+        // Download" on step 2 IS the real confirmation - a second manual
+        // click here, after whatever login/signup detour, was pure
+        // redundant friction. Auto-fires after a short countdown instead.
+        //
+        // Real bug this guards against, live-caught: this used to be a
+        // separate effect keyed on `phase`, which meant ANY transition
+        // back to 'confirm' restarted the countdown - including the
+        // catch block in startGenerate() below, which sets phase back to
+        // 'confirm' after a FAILURE. A persistent failure (e.g. an
+        // exhausted API credit balance) turned that into a silent
+        // infinite retry loop: fail -> confirm -> 10s countdown -> retry
+        // -> fail -> confirm -> 10s countdown -> retry..., burning a
+        // fresh real generation attempt every cycle for as long as the
+        // tab stayed open. Starting the countdown only here, inline with
+        // the ONE real fresh-stash-load path, means a failed generation
+        // always requires an explicit manual click to retry.
+        setAutoCountdown(10)
       } catch (err) {
         if (!cancelled) setError(err.message)
       }
     })()
     return () => { cancelled = true }
   }, [stashId, existingRunId])
-
-  // Real friction this removes: clicking "Generate Full Ad & Download" on
-  // step 2 IS the real confirmation - a second manual click here, after
-  // whatever login/signup detour, was pure redundant friction. Auto-fires
-  // after a short countdown instead, with an easy cancel if someone
-  // landed here by mistake or wants a moment to actually read the scene
-  // 1 preview first.
-  useEffect(() => {
-    if (phase !== 'confirm') return
-    setAutoCountdown(10)
-  }, [phase])
 
   useEffect(() => {
     if (autoCountdown === null) return
