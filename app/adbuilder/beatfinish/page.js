@@ -31,7 +31,6 @@ function BeatFinishInner() {
   const [error, setError] = useState(null)
   const [phase, setPhase] = useState('loading') // loading -> confirm -> generating -> ready
   const [forking, setForking] = useState(false)
-  const [autoCountdown, setAutoCountdown] = useState(null) // null = no timer running; number = seconds left
   const [elapsed, setElapsed] = useState(0)
 
   // Two ways to land here: a fresh free-preview handoff (?stash=..., needs
@@ -69,42 +68,12 @@ function BeatFinishInner() {
         if (cancelled) return
         setStashData(data)
         setPhase('confirm')
-        // Real friction this removes: clicking "Generate Full Ad &
-        // Download" on step 2 IS the real confirmation - a second manual
-        // click here, after whatever login/signup detour, was pure
-        // redundant friction. Auto-fires after a short countdown instead.
-        //
-        // Real bug this guards against, live-caught: this used to be a
-        // separate effect keyed on `phase`, which meant ANY transition
-        // back to 'confirm' restarted the countdown - including the
-        // catch block in startGenerate() below, which sets phase back to
-        // 'confirm' after a FAILURE. A persistent failure (e.g. an
-        // exhausted API credit balance) turned that into a silent
-        // infinite retry loop: fail -> confirm -> 10s countdown -> retry
-        // -> fail -> confirm -> 10s countdown -> retry..., burning a
-        // fresh real generation attempt every cycle for as long as the
-        // tab stayed open. Starting the countdown only here, inline with
-        // the ONE real fresh-stash-load path, means a failed generation
-        // always requires an explicit manual click to retry.
-        setAutoCountdown(10)
       } catch (err) {
         if (!cancelled) setError(err.message)
       }
     })()
     return () => { cancelled = true }
   }, [stashId, existingRunId])
-
-  useEffect(() => {
-    if (autoCountdown === null) return
-    if (autoCountdown <= 0) {
-      setAutoCountdown(null)
-      startGenerate()
-      return
-    }
-    const t = setTimeout(() => setAutoCountdown((s) => s - 1), 1000)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoCountdown])
 
   // This is one long synchronous request (beatrun/route.js) with no
   // real-time progress signal from the server - rather than a static
@@ -187,17 +156,7 @@ function BeatFinishInner() {
             <p style={{ color: 'var(--mist)', fontSize: 14, marginBottom: 24 }}>
               {stashData.script?.beats?.length || 0} scenes, real motion and narration throughout — takes a few minutes once it starts.
             </p>
-            {autoCountdown !== null ? (
-              <>
-                <p style={{ color: 'var(--mist)', fontSize: 13, marginBottom: 12 }}>Starting in {autoCountdown}s…</p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={() => setAutoCountdown(null)} className="btn-ghost" style={{ flex: 1, height: 48 }}>Wait, cancel</button>
-                  <button onClick={startGenerate} className="btn-gradient" style={{ flex: 1, height: 48 }}>Generate Now</button>
-                </div>
-              </>
-            ) : (
-              <button onClick={startGenerate} className="btn-gradient" style={{ width: '100%', height: 48 }}>Generate My Ad</button>
-            )}
+            <button onClick={startGenerate} className="btn-gradient" style={{ width: '100%', height: 48 }}>Generate My Ad</button>
           </div>
         )}
         {phase === 'generating' && (
