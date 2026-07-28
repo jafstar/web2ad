@@ -204,3 +204,22 @@ input[type="text"]:focus, input[type="email"]:focus {
   outline: none;
   border-color: var(--accent-solid);
 }
+
+/* Real bug fixed here: every loading state across /adbuilder
+   (beatfinish, BeatAdWizard, beatedit, projects) renders a
+   `className="dp-spinner"` div, but that class was only ever defined in
+   dp-custom.css, imported by app/app/layout.js (the genstock/DesignPipe
+   app) - never by this root layout, which is what /adbuilder actually
+   uses. Every "spinner" on this whole flow has silently been an empty,
+   unstyled div this entire time. Defined here (not by importing
+   dp-custom.css wholesale, which carries a lot of DesignPipe-specific
+   styling not meant for these pages) with web2ad's own accent color. */
+.dp-spinner {
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent-solid);
+  animation: dp-spin 0.7s linear infinite;
+}
+@keyframes dp-spin {
+  to { transform: rotate(360deg); }
+}
