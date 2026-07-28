@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '../../lib/supabase/client'
+import StoryboardPlayer from './StoryboardPlayer'
 
 // Real 3-step v2 funnel, requested live 2026-07-26 to replace v1's 4-step
 // free wizard + separate signup gate: url -> first-scene preview (audio +
@@ -39,8 +40,8 @@ function BeatAdWizardInner() {
   const [brief, setBrief] = useState(null)
   const [beats, setBeats] = useState(null)
   const [atmosphere, setAtmosphere] = useState(null)
-  const [narratorAudioUrl, setNarratorAudioUrl] = useState(null)
-  const [sceneImageUrl, setSceneImageUrl] = useState(null)
+  const [musicDataUrl, setMusicDataUrl] = useState(null)
+  const [totalDuration, setTotalDuration] = useState(null)
   const [outroEnabled, setOutroEnabled] = useState(true)
   const [outroText, setOutroText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -74,8 +75,8 @@ function BeatAdWizardInner() {
       // a blank field they have to fill from scratch.
       if (ingestData.brief.mascotNote) setOutroText(ingestData.brief.mascotNote)
 
-      setBusyLabel('Writing your story + rendering scene 1… (~30-45s)')
-      const previewRes = await fetch('/api/adbuilder/beatpreview', {
+      setBusyLabel('Writing your story + rendering every scene… (~45-90s, no video yet — that\'s the paid step)')
+      const previewRes = await fetch('/api/adbuilder/storyboardpreview', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brief: ingestData.brief, direction }),
       })
@@ -83,8 +84,8 @@ function BeatAdWizardInner() {
       if (!previewRes.ok) throw new Error(previewData.error || 'Could not build your preview')
       setBeats(previewData.beats)
       setAtmosphere(previewData.atmosphere)
-      setNarratorAudioUrl(previewData.narratorAudioUrl)
-      setSceneImageUrl(previewData.sceneImageUrl)
+      setMusicDataUrl(previewData.musicDataUrl)
+      setTotalDuration(previewData.totalDuration)
     } catch (err) {
       setError(err.message)
       setStep('url')
@@ -120,9 +121,16 @@ function BeatAdWizardInner() {
     setBusy(true); setError(null)
     try {
       const briefWithOutro = { ...brief, outroEnabled, outroText: outroEnabled ? outroText.trim() : '' }
+      const sceneImageUrl = beats?.[0]?.keyframeUrl || null
+      // The real generation step re-synthesizes audio and re-generates
+      // keyframes fresh from phrase/visual (see buildBeatAd/composeBeatAd)
+      // - it never reads this preview's keyframeUrl/audioDataUrl, so
+      // there's no reason to carry those large base64 audio blobs into
+      // the stash row.
+      const leanBeats = beats.map(({ id, phrase, visual }) => ({ id, phrase, visual }))
       const res = await fetch('/api/adbuilder/stash', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: briefWithOutro, script: { mode: 'beat', beats, atmosphere, sceneImageUrl }, previewImage: null }),
+        body: JSON.stringify({ brief: briefWithOutro, script: { mode: 'beat', beats: leanBeats, atmosphere, sceneImageUrl }, previewImage: null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not continue to signup')
@@ -231,41 +239,28 @@ function BeatAdWizardInner() {
             </div>
           ) : firstBeat && (
             <>
-              <h2 style={{ fontSize: 26, marginBottom: 18 }}>Scene 1 of your story</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 18, marginBottom: 24, alignItems: 'start' }}>
-                <img src={sceneImageUrl} alt="Scene 1" style={{ width: 160, height: 160, borderRadius: 10, objectFit: 'cover', display: 'block' }} />
-                <div style={{ minWidth: 0 }}>
-                  <Field label="Narration" value={`"${firstBeat.phrase}"`} />
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 6 }}>
-                      Narrated by Brian
-                    </div>
-                    <audio controls src={narratorAudioUrl} style={{ width: '100%', height: 36 }} />
-                  </div>
-                </div>
+              <h2 style={{ fontSize: 26, marginBottom: 6 }}>Your full story, in preview</h2>
+              <p style={{ color: 'var(--mist)', fontSize: 13.5, marginBottom: 18 }}>
+                Every scene's real image and narration, free — the video motion is the one paid step, right after this.
+              </p>
+              <div style={{ marginBottom: 24 }}>
+                <StoryboardPlayer beats={beats} musicDataUrl={musicDataUrl} totalDuration={totalDuration} />
               </div>
 
-              {beats.length > 1 && (
-                <div style={{ marginBottom: 24 }}>
-                  <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 10 }}>
-                    How the full story unfolds ({beats.length} scenes)
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {beats.map((b, i) => (
-                      <div key={b.id} className="card" style={{ padding: '14px 16px', background: i === 0 ? 'rgba(124,58,237,0.08)' : 'rgba(255,255,255,0.02)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 600 }}>Scene {i + 1}</span>
-                          <span style={{ fontSize: 11, color: i === 0 ? 'var(--accent-solid)' : 'var(--mist)' }}>
-                            {i === 0 ? 'in your free preview' : 'unlocked after generating'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 14, color: 'var(--fg)', marginBottom: 2 }}>"{b.phrase}"</div>
-                        <div style={{ fontSize: 12.5, color: 'var(--mist)' }}>{b.visual}</div>
-                      </div>
-                    ))}
-                  </div>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 10 }}>
+                  Full script ({beats.length} scenes)
                 </div>
-              )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {beats.map((b, i) => (
+                    <div key={b.id} className="card" style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.02)' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>Scene {i + 1}</div>
+                      <div style={{ fontSize: 14, color: 'var(--fg)', marginBottom: 2 }}>"{b.phrase}"</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--mist)' }}>{b.visual}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="card" style={{ padding: '16px 18px', marginBottom: 20, background: 'rgba(255,255,255,0.02)' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: outroEnabled ? 12 : 0 }}>
@@ -293,15 +288,6 @@ function BeatAdWizardInner() {
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 15 }}>{value}</div>
     </div>
   )
 }
