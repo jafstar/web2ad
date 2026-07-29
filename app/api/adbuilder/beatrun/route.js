@@ -8,7 +8,7 @@ import { buildBeatAd } from '../../../../lib/adbuilder/beatPipeline.js'
 // the finished, downloadable ad in one response - v2 has no per-shot
 // editing UI, so there's no need for v1's poll-based ShotReview/
 // adbuilder_runs schema here, just a single long request behind a spinner.
-export const maxDuration = 600
+export const maxDuration = 300
 
 export async function POST(req) {
   try {

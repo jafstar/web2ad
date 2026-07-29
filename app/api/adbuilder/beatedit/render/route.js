@@ -19,7 +19,7 @@ import { synthesizeBeatAudio, composeBeatAd, NARRATION_VOICES } from '../../../.
 // beatPipeline's RENDER_DURATION_SECONDS) is what composeBeatAd trims
 // down to that fresh targetDuration, whether it's the original clip or
 // one regenerated via beatedit/motion.
-export const maxDuration = 600
+export const maxDuration = 300
 
 export async function POST(req) {
   try {

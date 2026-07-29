@@ -5,7 +5,7 @@ import { buildBeatAd } from '../../../../../lib/adbuilder/beatPipeline.js'
 // same real Flux/Hailuo/ElevenLabs calls as a full run (4-6 shots +
 // per-beat narration), so this genuinely costs real money per test, same
 // as everything else in the Playground. Not wired into the real funnel.
-export const maxDuration = 600
+export const maxDuration = 300
 
 export async function POST(req) {
   try {
