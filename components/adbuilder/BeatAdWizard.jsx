@@ -283,6 +283,13 @@ function BeatAdWizardInner() {
   // edited) script, anchored to the reference photo if one was uploaded.
   async function continueToPreview() {
     setBusy(true); setError(null); setStep('preview')
+    // Real bug fixed here, live-caught: re-rendering after going back
+    // (a different theme, an edited script) never cleared the PREVIOUS
+    // preview's beats/music - the loading check is `busy && !firstBeat`,
+    // so with old beats still sitting in state, that condition was false
+    // and the stale player rendered immediately instead of the spinner,
+    // only swapping to the real new story once the fetch actually landed.
+    setBeats(null); setMusicDataUrl(null); setTotalDuration(null)
     try {
       setBusyLabel('Rendering every scene… (~45-90s, no video yet — that\'s the paid step)')
       const res = await fetch('/api/adbuilder/storyboardpreview', {
@@ -613,11 +620,11 @@ function BeatAdWizardInner() {
         <div className="card" style={{ padding: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <div className="eyebrow">{STEP_LABEL.preview}</div>
-            {!(busy && !firstBeat) && firstBeat && (
+            {!busy && firstBeat && (
               <button onClick={() => goBack('script')} className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}>← Back</button>
             )}
           </div>
-          {busy && !firstBeat ? (
+          {busy || !firstBeat ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div className="dp-spinner" style={{ width: 28, height: 28, margin: '0 auto 18px' }} />
               <p style={{ color: 'var(--mist)', fontSize: 14.5 }}>{busyLabel}</p>
