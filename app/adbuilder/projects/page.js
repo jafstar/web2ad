@@ -76,7 +76,9 @@ export default function AdProjectsPage() {
                 : runId && p.thumbnailShotId
                 ? `/api/adbuilder/run/${runId}/media?type=keyframe&shotId=${p.thumbnailShotId}`
                 : null
-              const downloadHref = isV2 ? p.data?.videoUrl : `/api/adbuilder/run/${runId}/export`
+              const downloadHref = isV2
+                ? (p.data?.videoUrl ? `/api/adbuilder/download?url=${encodeURIComponent(p.data.videoUrl)}&name=ad.mp4` : null)
+                : `/api/adbuilder/run/${runId}/export`
               const badge = p.status === 'pending'
                 ? { label: 'Continue', bg: 'rgba(56,189,248,0.15)', color: 'var(--blue-glow)' }
                 : p.status === 'done'
@@ -112,7 +114,7 @@ export default function AdProjectsPage() {
                         {isFork ? 'Edit' : isV2 ? 'View' : p.status === 'pending' ? 'Continue' : 'Edit'}
                       </Link>
                       {p.status === 'done' && (
-                        <a href={downloadHref} download="ad.mp4" className="btn-gradient" style={{ padding: '7px 16px', fontSize: 13, textDecoration: 'none' }}>
+                        <a href={downloadHref} download="ad.mp4" target="_blank" rel="noopener" className="btn-gradient" style={{ padding: '7px 16px', fontSize: 13, textDecoration: 'none' }}>
                           Download
                         </a>
                       )}

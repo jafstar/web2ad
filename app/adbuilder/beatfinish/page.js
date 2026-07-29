@@ -254,7 +254,8 @@ function BeatFinishInner() {
             />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <a
-                href={result.url} download="ad.mp4"
+                href={`/api/adbuilder/download?url=${encodeURIComponent(result.url)}&name=ad.mp4`}
+                download="ad.mp4" target="_blank" rel="noopener"
                 className="btn-gradient" style={{ flex: 1, minWidth: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 48, textDecoration: 'none' }}
               >
                 Download Your Ad

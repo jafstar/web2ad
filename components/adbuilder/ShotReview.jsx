@@ -148,7 +148,7 @@ function ExportSection({ runId, schema }) {
             style={{ width: '100%', borderRadius: 10, marginBottom: 14, display: 'block', background: '#000' }}
           />
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <a href={`/api/adbuilder/run/${runId}/export`} download="ad.mp4" className="btn-gradient" style={{ padding: '11px 22px', textDecoration: 'none' }}>Download</a>
+            <a href={`/api/adbuilder/run/${runId}/export`} download="ad.mp4" target="_blank" rel="noopener" className="btn-gradient" style={{ padding: '11px 22px', textDecoration: 'none' }}>Download</a>
             <button type="button" onClick={doExport} disabled={busy || hasUnresolvedFailure} className="btn-ghost" style={{ fontSize: 13, opacity: hasUnresolvedFailure ? 0.5 : 1 }}>
               {busy ? 'Re-exporting…' : 'Re-export (picks up any changes)'}
             </button>

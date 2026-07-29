@@ -234,7 +234,11 @@ function BeatEditInner() {
               <button onClick={reRender} disabled={rendering || !allReady} className="btn-gradient" style={{ flex: 1, minWidth: 200, height: 44, opacity: rendering || !allReady ? 0.6 : 1 }}>
                 {rendering ? 'Re-rendering… (~1-2 min)' : allReady ? 'Re-render Ad With Edits' : 'Finish pending beats to re-render'}
               </button>
-              <a href={project.data.videoUrl} download="ad.mp4" className="btn-ghost" style={{ display: 'flex', alignItems: 'center', padding: '0 18px', height: 44, textDecoration: 'none' }}>
+              <a
+                href={`/api/adbuilder/download?url=${encodeURIComponent(project.data.videoUrl)}&name=ad.mp4`}
+                download="ad.mp4" target="_blank" rel="noopener"
+                className="btn-ghost" style={{ display: 'flex', alignItems: 'center', padding: '0 18px', height: 44, textDecoration: 'none' }}
+              >
                 Download Current
               </a>
             </div>

@@ -1,5 +1,6 @@
 import { exportFinalAd } from '../../../../../../lib/adbuilder/exportAd.js'
 import { readSchema } from '../../../../../../lib/adbuilder/shots.js'
+import { proxyDownload } from '../../../../../../lib/adbuilder/downloadProxy.js'
 
 // Real, potentially slow composite (TTS + music + multi-clip ffmpeg concat)
 // - shorter than the per-shot generation step but still genuinely slow.
@@ -16,14 +17,16 @@ export async function POST(req, { params }) {
   }
 }
 
-// Final export now lives on Cloudinary (schema.export.url) instead of
-// local disk - redirect the same way media/route.js does.
+// Final export lives on Cloudinary (schema.export.url) - proxied back
+// with a real Content-Disposition: attachment header (see
+// downloadProxy.js) rather than a redirect, so the Download button
+// actually downloads instead of navigating the tab to the raw video.
 export async function GET(req, { params }) {
   const { runId } = await params
   try {
     const schema = await readSchema(runId)
     if (!schema.export?.url) return Response.json({ error: 'Not exported yet' }, { status: 404 })
-    return Response.redirect(schema.export.url, 302)
+    return proxyDownload(schema.export.url, 'ad.mp4')
   } catch (e) {
     return Response.json({ error: 'Not exported yet' }, { status: 404 })
   }
