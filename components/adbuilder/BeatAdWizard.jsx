@@ -26,6 +26,17 @@ const INGEST_METHODS = [
   { key: 'social', label: 'Social Handle', ready: false },
 ]
 
+// Same 4 presets already proven in v1's fast pipeline (lib/adbuilder/
+// story.js TONE_PRESETS) - picked here on step 1 now instead of only
+// existing in the Playground, threaded into both pitchthemes and
+// writebeats so the angle AND the script both honor it.
+const TONES = [
+  { key: 'professional', label: 'Professional' },
+  { key: 'funny', label: 'Funny' },
+  { key: 'cinematic', label: 'Cinematic' },
+  { key: 'zen', label: 'Zen' },
+]
+
 // Downscales an uploaded photo client-side before it becomes a data URL -
 // same helper beatedit/page.js uses for its per-beat reference upload,
 // duplicated locally rather than shared since it's ~15 lines and this
@@ -62,11 +73,15 @@ function BeatAdWizardInner() {
   const [url, setUrl] = useState('')
   const [text, setText] = useState('')
   const [direction, setDirection] = useState('')
+  const [tone, setTone] = useState('professional')
   const [brief, setBrief] = useState(null)
   const [themes, setThemes] = useState(null)
+  const [themeRegenCount, setThemeRegenCount] = useState(0)
   const [editableBeats, setEditableBeats] = useState(null)
   const [referencePreview, setReferencePreview] = useState(null)
   const [referenceError, setReferenceError] = useState(null)
+  const [characterDescription, setCharacterDescription] = useState('')
+  const [charBusy, setCharBusy] = useState(null) // null | 'describe' | 'generate'
   const [beats, setBeats] = useState(null)
   const [atmosphere, setAtmosphere] = useState(null)
   const [musicDataUrl, setMusicDataUrl] = useState(null)
@@ -76,6 +91,8 @@ function BeatAdWizardInner() {
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('')
   const [error, setError] = useState(null)
+  const [regenBeatId, setRegenBeatId] = useState(null)
+  const [regenFixNotes, setRegenFixNotes] = useState({})
 
   function normalizeUrl(value) {
     const trimmed = value.trim()
@@ -106,7 +123,7 @@ function BeatAdWizardInner() {
       setBusyLabel('Pitching a few story angles… (~10-15s)')
       const pitchRes = await fetch('/api/adbuilder/pitchthemes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: ingestData.brief, direction }),
+        body: JSON.stringify({ brief: ingestData.brief, direction, tone, regenCount: 0 }),
       })
       const pitchData = await pitchRes.json()
       if (!pitchRes.ok) throw new Error(pitchData.error || 'Could not pitch story ideas')
@@ -114,6 +131,28 @@ function BeatAdWizardInner() {
     } catch (err) {
       setError(err.message)
       setStep('url')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // "See More Ideas" - real, if soft, limit of one extra batch for free
+  // users (server also checks regenCount, see pitchthemes/route.js).
+  // Excludes the titles already shown so the second batch is genuinely
+  // new, not a near-duplicate reroll.
+  async function seeMoreThemes() {
+    setBusy(true); setError(null)
+    try {
+      const res = await fetch('/api/adbuilder/pitchthemes', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief, direction, tone, excludeTitles: themes.map((t) => t.title), regenCount: themeRegenCount + 1 }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not pitch more story ideas')
+      setThemes((prev) => [...prev, ...data.themes])
+      setThemeRegenCount((c) => c + 1)
+    } catch (err) {
+      setError(err.message)
     } finally {
       setBusy(false)
     }
@@ -147,7 +186,7 @@ function BeatAdWizardInner() {
       const combinedDirection = [direction, `Chosen story angle: "${theme.title}" - ${theme.pitch}`].filter(Boolean).join('\n\n')
       const res = await fetch('/api/adbuilder/writebeats', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, direction: combinedDirection }),
+        body: JSON.stringify({ brief, direction: combinedDirection, tone }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not write the script')
@@ -177,6 +216,48 @@ function BeatAdWizardInner() {
     }
   }
 
+  // Renders whatever's currently in the description field - typed by the
+  // business owner, or filled in by "Describe for me" below.
+  async function generateCharacterFromDescription() {
+    if (!characterDescription.trim()) return
+    setCharBusy('generate'); setReferenceError(null)
+    try {
+      const res = await fetch('/api/adbuilder/gencharacter', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: characterDescription.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not generate that reference')
+      setReferencePreview(data.imageDataUrl)
+    } catch (err) {
+      setReferenceError(err.message)
+    } finally {
+      setCharBusy(null)
+    }
+  }
+
+  // Auto-writes a detailed character description from the story's own
+  // beats (Gemini), then renders it in the same call - the description
+  // lands back in the editable field either way, so it can be tweaked
+  // and re-rendered via the button above.
+  async function describeCharacterFromStory() {
+    setCharBusy('describe'); setReferenceError(null)
+    try {
+      const res = await fetch('/api/adbuilder/gencharacter', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief, beats: editableBeats }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not describe a character from this story')
+      setCharacterDescription(data.description)
+      setReferencePreview(data.imageDataUrl)
+    } catch (err) {
+      setReferenceError(err.message)
+    } finally {
+      setCharBusy(null)
+    }
+  }
+
   // 2a -> 2b: build the real storyboard preview from the (possibly
   // edited) script, anchored to the reference photo if one was uploaded.
   async function continueToPreview() {
@@ -198,6 +279,29 @@ function BeatAdWizardInner() {
       setStep('script')
     } finally {
       setBusy(false)
+    }
+  }
+
+  // "Iterate when auto gets it wrong" - regenerates ONE scene's image
+  // directly in the free 2b preview, no signup, no starting over. Same
+  // real Flux call as everywhere else (regenscene/route.js), just scoped
+  // to one beat; updates that beat's keyframeUrl in place so the
+  // StoryboardPlayer picks up the new image on its next play.
+  async function regenSceneImage(beatId) {
+    setRegenBeatId(beatId); setError(null)
+    try {
+      const beat = beats.find((b) => b.id === beatId)
+      const res = await fetch('/api/adbuilder/regenscene', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief, atmosphere, beatId, visual: beat.visual, fixNote: regenFixNotes[beatId] || '', referenceImageDataUrl: referencePreview }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not regenerate that scene')
+      setBeats((prev) => prev.map((b) => (b.id === beatId ? { ...b, keyframeUrl: data.keyframeUrl } : b)))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRegenBeatId(null)
     }
   }
 
@@ -311,6 +415,25 @@ function BeatAdWizardInner() {
             )}
 
             <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 8 }}>
+              Tone
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+              {TONES.map((t) => (
+                <button
+                  key={t.key} type="button" onClick={() => setTone(t.key)}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, fontSize: 13.5, fontWeight: 500,
+                    border: `1px solid ${tone === t.key ? 'var(--accent-solid)' : 'rgba(255,255,255,0.12)'}`,
+                    background: tone === t.key ? 'rgba(124,58,237,0.14)' : 'transparent',
+                    color: 'var(--fg)', cursor: 'pointer',
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 8 }}>
               What do you want to see made? (optional)
             </div>
             <textarea
@@ -350,6 +473,11 @@ function BeatAdWizardInner() {
                   </button>
                 ))}
               </div>
+              {themeRegenCount < 1 && (
+                <button onClick={seeMoreThemes} disabled={busy} className="btn-ghost" style={{ width: '100%', height: 42, marginTop: 16, opacity: busy ? 0.6 : 1 }}>
+                  {busy ? 'Thinking of more…' : 'See More Ideas'}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -372,15 +500,34 @@ function BeatAdWizardInner() {
                 <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 10 }}>
                   Character / product reference (optional)
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
                   {referencePreview && <img src={referencePreview} alt="Reference" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />}
                   <label className="btn-ghost" style={{ padding: '7px 14px', fontSize: 13, cursor: 'pointer' }}>
                     {referencePreview ? 'Change photo' : 'Upload a real photo'}
                     <input type="file" accept="image/*" onChange={handleReferenceUpload} style={{ display: 'none' }} />
                   </label>
+                  <button
+                    onClick={describeCharacterFromStory} disabled={!!charBusy} className="btn-ghost"
+                    style={{ padding: '7px 14px', fontSize: 13, opacity: charBusy ? 0.6 : 1 }}
+                  >
+                    {charBusy === 'describe' ? 'Reading the story…' : 'Describe for me from the story'}
+                  </button>
                   {referencePreview && (
                     <button onClick={() => setReferencePreview(null)} className="btn-ghost" style={{ padding: '7px 12px', fontSize: 13 }}>Clear</button>
                   )}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text" placeholder="...or type a description and generate a reference image from it"
+                    value={characterDescription} onChange={(e) => setCharacterDescription(e.target.value)}
+                    style={{ flex: 1, height: 36, fontSize: 13, padding: '0 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)' }}
+                  />
+                  <button
+                    onClick={generateCharacterFromDescription} disabled={!!charBusy || !characterDescription.trim()} className="btn-ghost"
+                    style={{ padding: '0 14px', fontSize: 13, opacity: charBusy || !characterDescription.trim() ? 0.6 : 1 }}
+                  >
+                    {charBusy === 'generate' ? 'Rendering…' : 'Generate'}
+                  </button>
                 </div>
                 {referenceError && <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 8 }}>{referenceError}</div>}
               </div>
@@ -391,11 +538,11 @@ function BeatAdWizardInner() {
                     <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>Scene {i + 1}</div>
                     <textarea
                       value={b.phrase} onChange={(e) => updateBeatField(i, 'phrase', e.target.value)}
-                      rows={1} style={{ width: '100%', fontSize: 14, resize: 'vertical', minHeight: 30, padding: '5px 8px', marginBottom: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'var(--fg)', fontFamily: 'inherit' }}
+                      rows={2} style={{ width: '100%', fontSize: 14, resize: 'vertical', minHeight: 52, padding: '8px 10px', marginBottom: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, color: 'var(--fg)', fontFamily: 'inherit' }}
                     />
                     <textarea
                       value={b.visual} onChange={(e) => updateBeatField(i, 'visual', e.target.value)}
-                      rows={1} style={{ width: '100%', fontSize: 12.5, resize: 'vertical', minHeight: 26, padding: '5px 8px', background: 'transparent', border: '1px solid transparent', borderRadius: 6, color: 'var(--mist)', fontFamily: 'inherit' }}
+                      rows={2} style={{ width: '100%', fontSize: 12.5, resize: 'vertical', minHeight: 52, padding: '8px 10px', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 6, color: 'var(--mist)', fontFamily: 'inherit' }}
                     />
                   </div>
                 ))}
@@ -425,6 +572,35 @@ function BeatAdWizardInner() {
               </p>
               <div style={{ marginBottom: 24 }}>
                 <StoryboardPlayer beats={beats} musicDataUrl={musicDataUrl} totalDuration={totalDuration} />
+              </div>
+
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 10 }}>
+                  Not quite right? Regenerate any scene's image, free
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {beats.map((b, i) => (
+                    <div key={b.id} className="card" style={{ padding: 12, display: 'grid', gridTemplateColumns: '52px 1fr', gap: 12, alignItems: 'center', background: 'rgba(255,255,255,0.02)' }}>
+                      <img src={b.keyframeUrl} alt={`Scene ${i + 1}`} style={{ width: 52, height: 52, borderRadius: 6, objectFit: 'cover' }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11.5, color: 'var(--mist)', marginBottom: 6 }}>Scene {i + 1}: "{b.phrase}"</div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input
+                            type="text" placeholder="Optional fix note"
+                            value={regenFixNotes[b.id] || ''} onChange={(e) => setRegenFixNotes((prev) => ({ ...prev, [b.id]: e.target.value }))}
+                            style={{ flex: 1, height: 30, fontSize: 12.5, padding: '0 10px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)' }}
+                          />
+                          <button
+                            onClick={() => regenSceneImage(b.id)} disabled={!!regenBeatId} className="btn-ghost"
+                            style={{ padding: '0 12px', fontSize: 12, opacity: regenBeatId ? 0.6 : 1, whiteSpace: 'nowrap' }}
+                          >
+                            {regenBeatId === b.id ? 'Regenerating…' : 'Regenerate'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="card" style={{ padding: '16px 18px', marginBottom: 20, background: 'rgba(255,255,255,0.02)' }}>

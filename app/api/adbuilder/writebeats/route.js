@@ -11,9 +11,9 @@ export const maxDuration = 30
 
 export async function POST(req) {
   try {
-    const { brief, direction } = await req.json()
+    const { brief, direction, tone } = await req.json()
     if (!brief?.businessName || !brief?.whatTheyDo) return Response.json({ error: 'Missing brief' }, { status: 400 })
-    const { beats, atmosphere } = await writeAdBeats(brief, direction)
+    const { beats, atmosphere } = await writeAdBeats(brief, direction, tone)
     return Response.json({ beats, atmosphere })
   } catch (e) {
     console.error('adbuilder/writebeats failed:', e)
