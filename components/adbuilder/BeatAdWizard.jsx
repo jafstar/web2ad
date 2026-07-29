@@ -136,6 +136,15 @@ function BeatAdWizardInner() {
     }
   }
 
+  // Back navigation - every relevant piece of state (themes, editableBeats,
+  // etc.) already lives in memory from the forward pass, so going back is
+  // just a step change, no re-fetching. Picking a different theme or
+  // re-rendering from the script step naturally overwrites the old state.
+  function goBack(target) {
+    setError(null)
+    setStep(target)
+  }
+
   // "See More Ideas" - real, if soft, limit of one extra batch for free
   // users (server also checks regenCount, see pitchthemes/route.js).
   // Excludes the titles already shown so the second batch is genuinely
@@ -451,7 +460,12 @@ function BeatAdWizardInner() {
 
       {step === 'theme' && (
         <div className="card" style={{ padding: 32 }}>
-          <div className="eyebrow" style={{ marginBottom: 14 }}>{STEP_LABEL.theme}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div className="eyebrow">{STEP_LABEL.theme}</div>
+            {!busy && themes && (
+              <button onClick={() => goBack('url')} className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}>← Back</button>
+            )}
+          </div>
           {busy || !themes ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div className="dp-spinner" style={{ width: 28, height: 28, margin: '0 auto 18px' }} />
@@ -485,7 +499,12 @@ function BeatAdWizardInner() {
 
       {step === 'script' && (
         <div className="card" style={{ padding: 32 }}>
-          <div className="eyebrow" style={{ marginBottom: 14 }}>{STEP_LABEL.script}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div className="eyebrow">{STEP_LABEL.script}</div>
+            {!busy && editableBeats && (
+              <button onClick={() => goBack('theme')} className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}>← Back</button>
+            )}
+          </div>
           {busy || !editableBeats ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div className="dp-spinner" style={{ width: 28, height: 28, margin: '0 auto 18px' }} />
@@ -558,7 +577,12 @@ function BeatAdWizardInner() {
 
       {step === 'preview' && (
         <div className="card" style={{ padding: 32 }}>
-          <div className="eyebrow" style={{ marginBottom: 14 }}>{STEP_LABEL.preview}</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div className="eyebrow">{STEP_LABEL.preview}</div>
+            {!(busy && !firstBeat) && firstBeat && (
+              <button onClick={() => goBack('script')} className="btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}>← Back</button>
+            )}
+          </div>
           {busy && !firstBeat ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <div className="dp-spinner" style={{ width: 28, height: 28, margin: '0 auto 18px' }} />
