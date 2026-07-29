@@ -27,7 +27,7 @@ export async function POST(req) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return Response.json({ error: 'Sign in required' }, { status: 401 })
 
-    const { runId, outroEnabled, outroText } = await req.json()
+    const { runId, outroEnabled, outroText, outroLogoDataUrl, outroWebsiteText, outroBackground } = await req.json()
     if (!runId) return Response.json({ error: 'Missing runId' }, { status: 400 })
 
     const project = await loadEditableProject(supabase, user, runId)
@@ -42,7 +42,15 @@ export async function POST(req) {
     // whatever the editor's controls currently show is what this render
     // uses AND what gets persisted, so reopening the editor later reflects
     // the last real render's settings.
-    const updatedBrief = { ...project.data.brief, outroEnabled: outroEnabled !== false, outroText: outroEnabled !== false ? (outroText || '').trim() : '' }
+    const outroOn = outroEnabled !== false
+    const updatedBrief = {
+      ...project.data.brief,
+      outroEnabled: outroOn,
+      outroText: outroOn ? (outroText || '').trim() : '',
+      outroLogoDataUrl: outroOn ? (outroLogoDataUrl || null) : null,
+      outroWebsiteText: outroOn ? (outroWebsiteText || '').trim() : '',
+      outroBackground: outroOn ? (outroBackground || 'themed') : 'themed',
+    }
 
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'adbuilder-beatedit-render-'))
     let result

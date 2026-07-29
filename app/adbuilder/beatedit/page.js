@@ -22,6 +22,10 @@ function BeatEditInner() {
   const [rendering, setRendering] = useState(false)
   const [outroEnabled, setOutroEnabled] = useState(true)
   const [outroText, setOutroText] = useState('')
+  const [outroLogoPreview, setOutroLogoPreview] = useState(null)
+  const [outroLogoError, setOutroLogoError] = useState(null)
+  const [outroWebsiteText, setOutroWebsiteText] = useState('')
+  const [outroBackground, setOutroBackground] = useState('themed')
   const [outroInitialized, setOutroInitialized] = useState(false)
 
   async function loadProject() {
@@ -39,6 +43,9 @@ function BeatEditInner() {
       if (!outroInitialized) {
         setOutroEnabled(proj.data.brief?.outroEnabled !== false)
         setOutroText(proj.data.brief?.outroText || proj.data.brief?.mascotNote || '')
+        setOutroLogoPreview(proj.data.brief?.outroLogoDataUrl || null)
+        setOutroWebsiteText(proj.data.brief?.outroWebsiteText || '')
+        setOutroBackground(proj.data.brief?.outroBackground || 'themed')
         setOutroInitialized(true)
       }
     } catch (err) {
@@ -103,12 +110,24 @@ function BeatEditInner() {
     }
   }
 
+  async function handleOutroLogoUpload(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setOutroLogoError(null)
+    try {
+      setOutroLogoPreview(await resizeImageFile(file, 512))
+    } catch (err) {
+      setOutroLogoError(err.message)
+    }
+  }
+
   async function reRender() {
     setRendering(true); setError(null)
     try {
       const res = await fetch('/api/adbuilder/beatedit/render', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ runId, outroEnabled, outroText }),
+        body: JSON.stringify({ runId, outroEnabled, outroText, outroLogoDataUrl: outroLogoPreview, outroWebsiteText, outroBackground }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not re-render this ad')
@@ -172,11 +191,42 @@ function BeatEditInner() {
                 <span style={{ fontSize: 14, fontWeight: 500 }}>Add a branded ending</span>
               </label>
               {outroEnabled && (
-                <textarea
-                  placeholder="Optional tagline or description (e.g. a mascot or character to mention)"
-                  value={outroText} onChange={(e) => setOutroText(e.target.value)}
-                  style={{ width: '100%', minHeight: 46, resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '8px 12px', fontSize: 13, fontFamily: 'Inter, sans-serif' }}
-                />
+                <>
+                  <textarea
+                    placeholder="Optional tagline or description (e.g. a mascot or character to mention)"
+                    value={outroText} onChange={(e) => setOutroText(e.target.value)}
+                    style={{ width: '100%', minHeight: 46, resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '8px 12px', fontSize: 13, fontFamily: 'Inter, sans-serif', marginBottom: 10 }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    {outroLogoPreview && (
+                      <img src={outroLogoPreview} alt="Logo" style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.06)' }} />
+                    )}
+                    <label className="btn-ghost" style={{ padding: '5px 12px', fontSize: 12, cursor: 'pointer' }}>
+                      {outroLogoPreview ? 'Change logo' : 'Add a logo (optional)'}
+                      <input type="file" accept="image/*" onChange={handleOutroLogoUpload} style={{ display: 'none' }} />
+                    </label>
+                    {outroLogoPreview && (
+                      <button onClick={() => setOutroLogoPreview(null)} className="btn-ghost" style={{ padding: '5px 10px', fontSize: 12 }}>Clear</button>
+                    )}
+                  </div>
+                  {outroLogoError && <div style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{outroLogoError}</div>}
+                  <input
+                    type="text" placeholder="Website or phone to show (optional)"
+                    value={outroWebsiteText} onChange={(e) => setOutroWebsiteText(e.target.value)}
+                    style={{ width: '100%', height: 34, fontSize: 13, padding: '0 10px', marginBottom: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)' }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {[{ key: 'themed', label: 'Themed' }, { key: 'black', label: 'Black' }, { key: 'white', label: 'White' }].map((opt) => (
+                      <button
+                        key={opt.key} onClick={() => setOutroBackground(opt.key)}
+                        className="btn-ghost"
+                        style={{ padding: '5px 14px', fontSize: 12, borderColor: outroBackground === opt.key ? 'var(--accent-solid)' : undefined, color: outroBackground === opt.key ? 'var(--accent-solid)' : undefined }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 

@@ -89,6 +89,10 @@ function BeatAdWizardInner() {
   const [totalDuration, setTotalDuration] = useState(null)
   const [outroEnabled, setOutroEnabled] = useState(true)
   const [outroText, setOutroText] = useState('')
+  const [outroLogoPreview, setOutroLogoPreview] = useState(null)
+  const [outroLogoError, setOutroLogoError] = useState(null)
+  const [outroWebsiteText, setOutroWebsiteText] = useState('')
+  const [outroBackground, setOutroBackground] = useState('themed')
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('')
   const [error, setError] = useState(null)
@@ -125,6 +129,12 @@ function BeatAdWizardInner() {
       // brandExtract.js) - a real starting point to confirm or edit, not
       // a blank field they have to fill from scratch.
       if (ingestData.brief.mascotNote) setOutroText(ingestData.brief.mascotNote)
+      // Same idea for the website/phone line - prefill with their real
+      // site's hostname (not the full URL with scheme/path) when we have
+      // one, still fully editable before it ever gets baked into a clip.
+      if (ingestData.brief.sourceUrl) {
+        try { setOutroWebsiteText(new URL(ingestData.brief.sourceUrl).hostname.replace(/^www\./, '')) } catch { setOutroWebsiteText(ingestData.brief.sourceUrl) }
+      }
 
       setBusyLabel('Pitching a few story angles… (~10-15s)')
       const pitchRes = await fetch('/api/adbuilder/pitchthemes', {
@@ -244,6 +254,18 @@ function BeatAdWizardInner() {
     }
   }
 
+  async function handleOutroLogoUpload(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setOutroLogoError(null)
+    try {
+      setOutroLogoPreview(await resizeImageFile(file, 512))
+    } catch (err) {
+      setOutroLogoError(err.message)
+    }
+  }
+
   // Renders whatever's currently in the description field - typed by the
   // business owner, or filled in by "Describe for me" below.
   async function generateCharacterFromDescription() {
@@ -352,6 +374,9 @@ function BeatAdWizardInner() {
       const briefWithOutro = {
         ...brief,
         outroEnabled, outroText: outroEnabled ? outroText.trim() : '',
+        outroLogoDataUrl: outroEnabled ? (outroLogoPreview || null) : null,
+        outroWebsiteText: outroEnabled ? outroWebsiteText.trim() : '',
+        outroBackground: outroEnabled ? outroBackground : 'themed',
         // Carried into the real paid generation too, so the reference
         // photo anchors the final video the same way it anchored this
         // free preview - see generateBeatShots/buildBeatAd.
@@ -683,13 +708,43 @@ function BeatAdWizardInner() {
                 {outroEnabled && (
                   <>
                     <div style={{ fontSize: 12.5, color: 'var(--mist)', marginBottom: 8 }}>
-                      Your business name{brief?.phoneNumber ? ' and phone number' : ''} on a closing card, in your real site colors.
+                      Your business name{brief?.phoneNumber ? ' and phone number' : ''} on a closing card.
                     </div>
                     <textarea
                       placeholder="Optional tagline or description (e.g. a mascot or character to mention)"
                       value={outroText} onChange={(e) => setOutroText(e.target.value)}
-                      style={{ width: '100%', minHeight: 50, resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '8px 12px', fontSize: 13, fontFamily: 'Inter, sans-serif' }}
+                      style={{ width: '100%', minHeight: 50, resize: 'vertical', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)', padding: '8px 12px', fontSize: 13, fontFamily: 'Inter, sans-serif', marginBottom: 10 }}
                     />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                      {outroLogoPreview && (
+                        <img src={outroLogoPreview} alt="Logo" style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'contain', background: 'rgba(255,255,255,0.06)' }} />
+                      )}
+                      <label className="btn-ghost" style={{ padding: '6px 14px', fontSize: 12.5, cursor: 'pointer' }}>
+                        {outroLogoPreview ? 'Change logo' : 'Add a logo (optional)'}
+                        <input type="file" accept="image/*" onChange={handleOutroLogoUpload} style={{ display: 'none' }} />
+                      </label>
+                      {outroLogoPreview && (
+                        <button onClick={() => setOutroLogoPreview(null)} className="btn-ghost" style={{ padding: '6px 12px', fontSize: 12.5 }}>Clear</button>
+                      )}
+                    </div>
+                    {outroLogoError && <div style={{ fontSize: 12, color: 'var(--danger)', marginBottom: 10 }}>{outroLogoError}</div>}
+                    <input
+                      type="text" placeholder="Website or phone to show (optional)"
+                      value={outroWebsiteText} onChange={(e) => setOutroWebsiteText(e.target.value)}
+                      style={{ width: '100%', height: 36, fontSize: 13, padding: '0 12px', marginBottom: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, color: 'var(--fg)' }}
+                    />
+                    <div style={{ fontSize: 11, color: 'var(--mist)', marginBottom: 6 }}>Background</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[{ key: 'themed', label: 'Your site colors' }, { key: 'black', label: 'Black' }, { key: 'white', label: 'White' }].map((opt) => (
+                        <button
+                          key={opt.key} onClick={() => setOutroBackground(opt.key)}
+                          className="btn-ghost"
+                          style={{ padding: '6px 14px', fontSize: 12.5, borderColor: outroBackground === opt.key ? 'var(--accent-solid)' : undefined, color: outroBackground === opt.key ? 'var(--accent-solid)' : undefined }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
