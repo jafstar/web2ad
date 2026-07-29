@@ -98,6 +98,7 @@ function BeatAdWizardInner() {
   const [error, setError] = useState(null)
   const [regenBeatId, setRegenBeatId] = useState(null)
   const [regenFixNotes, setRegenFixNotes] = useState({})
+  const [musicBusy, setMusicBusy] = useState(false)
 
   function normalizeUrl(value) {
     const trimmed = value.trim()
@@ -359,6 +360,27 @@ function BeatAdWizardInner() {
       setError(err.message)
     } finally {
       setRegenBeatId(null)
+    }
+  }
+
+  // ElevenLabs' sound-generation endpoint is a general-purpose sound
+  // model, not a dedicated music one - it occasionally comes back with
+  // something that isn't really music. Same free, no-persistence pattern
+  // as regenSceneImage above, just for the music bed instead of a scene.
+  async function regenMusic() {
+    setMusicBusy(true); setError(null)
+    try {
+      const res = await fetch('/api/adbuilder/regenmusic', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief, durationSeconds: totalDuration }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not regenerate the music')
+      setMusicDataUrl(data.musicDataUrl)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setMusicBusy(false)
     }
   }
 
@@ -669,6 +691,12 @@ function BeatAdWizardInner() {
               </p>
               <div style={{ marginBottom: 24 }}>
                 <StoryboardPlayer beats={beats} musicDataUrl={musicDataUrl} totalDuration={totalDuration} />
+                <button
+                  onClick={regenMusic} disabled={musicBusy} className="btn-ghost"
+                  style={{ marginTop: 10, padding: '7px 14px', fontSize: 12.5, opacity: musicBusy ? 0.6 : 1 }}
+                >
+                  {musicBusy ? 'Trying different music…' : "Doesn't sound right? Try different music"}
+                </button>
               </div>
 
               <div style={{ marginBottom: 24 }}>
