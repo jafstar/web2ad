@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 import { createClient } from '../../../../../lib/supabase/server'
 import { loadEditableProject, saveProjectData } from '../../../../../lib/adbuilder/beatEditStore.js'
-import { synthesizeBeatAudio, composeBeatAd } from '../../../../../lib/adbuilder/beatPipeline.js'
+import { synthesizeBeatAudio, composeBeatAd, NARRATION_VOICES } from '../../../../../lib/adbuilder/beatPipeline.js'
 
 // Re-composites the fork's CURRENT beats (whichever images/clips have
 // been individually regenerated, mixed with whichever haven't) using the
@@ -47,7 +47,7 @@ export async function POST(req) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'adbuilder-beatedit-render-'))
     let result
     try {
-      await synthesizeBeatAudio(beats, tmp, apiKey)
+      await synthesizeBeatAudio(beats, tmp, apiKey, NARRATION_VOICES[updatedBrief.voiceGender] || NARRATION_VOICES.male)
       result = await composeBeatAd(runId, updatedBrief, beats)
     } finally {
       try { fs.rmSync(tmp, { recursive: true, force: true }) } catch {}

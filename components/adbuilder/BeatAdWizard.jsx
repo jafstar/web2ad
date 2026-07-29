@@ -74,6 +74,7 @@ function BeatAdWizardInner() {
   const [text, setText] = useState('')
   const [direction, setDirection] = useState('')
   const [tone, setTone] = useState('professional')
+  const [voiceGender, setVoiceGender] = useState('male')
   const [brief, setBrief] = useState(null)
   const [themes, setThemes] = useState(null)
   const [themeRegenCount, setThemeRegenCount] = useState(0)
@@ -190,6 +191,17 @@ function BeatAdWizardInner() {
   // apply together rather than the theme silently overriding it.
   async function chooseTheme(theme) {
     setBusy(true); setError(null); setStep('script')
+    // Real bug fixed here, live-caught: going back and picking a
+    // different theme wrote a brand new story, but an already-generated
+    // character reference (photo or auto-description) stayed put -
+    // silently mismatched against the new story (e.g. an auto-described
+    // "woman" left over while the new theme's protagonist is "Shelton").
+    // A fresh theme means a fresh story, so any reference derived from
+    // the OLD one needs to go too - the business owner can always
+    // re-upload/re-generate against the new script.
+    setReferencePreview(null)
+    setCharacterDescription('')
+    setReferenceError(null)
     try {
       setBusyLabel('Writing the full script for this angle… (~10-20s)')
       const combinedDirection = [direction, `Chosen story angle: "${theme.title}" - ${theme.pitch}`].filter(Boolean).join('\n\n')
@@ -275,7 +287,7 @@ function BeatAdWizardInner() {
       setBusyLabel('Rendering every scene… (~45-90s, no video yet — that\'s the paid step)')
       const res = await fetch('/api/adbuilder/storyboardpreview', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, beats: editableBeats, atmosphere, referenceImageDataUrl: referencePreview }),
+        body: JSON.stringify({ brief: { ...brief, voiceGender }, beats: editableBeats, atmosphere, referenceImageDataUrl: referencePreview }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not build your preview')
@@ -330,6 +342,9 @@ function BeatAdWizardInner() {
         // photo anchors the final video the same way it anchored this
         // free preview - see generateBeatShots/buildBeatAd.
         referenceImageDataUrl: referencePreview || null,
+        // Same for the narrator voice - what the free preview played is
+        // what the real ad should say it with.
+        voiceGender,
       }
       const sceneImageUrl = beats?.[0]?.keyframeUrl || null
       // The real generation step re-synthesizes audio and re-generates
@@ -438,6 +453,25 @@ function BeatAdWizardInner() {
                   }}
                 >
                   {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.06em', color: 'var(--mist)', textTransform: 'uppercase', marginBottom: 8 }}>
+              Narrator voice
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+              {[{ key: 'male', label: 'Male' }, { key: 'female', label: 'Female' }].map((v) => (
+                <button
+                  key={v.key} type="button" onClick={() => setVoiceGender(v.key)}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8, fontSize: 13.5, fontWeight: 500,
+                    border: `1px solid ${voiceGender === v.key ? 'var(--accent-solid)' : 'rgba(255,255,255,0.12)'}`,
+                    background: voiceGender === v.key ? 'rgba(124,58,237,0.14)' : 'transparent',
+                    color: 'var(--fg)', cursor: 'pointer',
+                  }}
+                >
+                  {v.label}
                 </button>
               ))}
             </div>
