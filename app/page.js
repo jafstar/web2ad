@@ -12,6 +12,16 @@ function normalizeUrl(value) {
   return `https://${trimmed}`
 }
 
+// Same 4 presets as /adbuilder's own step 1 (components/adbuilder/
+// BeatAdWizard.jsx TONES) - picking here just carries the choice through
+// the ?tone= handoff instead of asking again on the wizard's own step 1.
+const TONES = [
+  { key: 'professional', label: 'Professional' },
+  { key: 'funny', label: 'Funny' },
+  { key: 'cinematic', label: 'Cinematic' },
+  { key: 'zen', label: 'Zen' },
+]
+
 // Rebuilt on top of the genstock fork's real design system (dark neutral
 // bg, Fraunces/Inter/JetBrains Mono, gradient accent, .card panel style —
 // see globals.css). Real change, 2026-07-25: the old two-column hero
@@ -21,13 +31,14 @@ function normalizeUrl(value) {
 // of the same url on the wizard's own step 1.
 export default function LandingPage() {
   const [url, setUrl] = useState('')
+  const [tone, setTone] = useState('professional')
   const router = useRouter()
 
   function handleSubmit(e) {
     e.preventDefault()
     const normalized = normalizeUrl(url)
     if (!normalized) return
-    router.push(`/adbuilder?url=${encodeURIComponent(normalized)}`)
+    router.push(`/adbuilder?url=${encodeURIComponent(normalized)}&tone=${tone}`)
   }
 
   return (
@@ -49,6 +60,21 @@ export default function LandingPage() {
             onBlur={(e) => setUrl(normalizeUrl(e.target.value))}
             style={{ width: '100%', height: 64, fontSize: 20, padding: '0 20px', marginBottom: 16 }}
           />
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+            {TONES.map((t) => (
+              <button
+                key={t.key} type="button" onClick={() => setTone(t.key)}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, fontSize: 13.5, fontWeight: 500,
+                  border: `1px solid ${tone === t.key ? 'var(--accent-solid)' : 'rgba(255,255,255,0.12)'}`,
+                  background: tone === t.key ? 'rgba(124,58,237,0.14)' : 'transparent',
+                  color: 'var(--fg)', cursor: 'pointer',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
           <button type="submit" className="btn-gradient" style={{ width: '100%', height: 56, fontSize: 16 }}>
             Start
           </button>

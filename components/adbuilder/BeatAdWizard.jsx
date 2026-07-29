@@ -104,7 +104,12 @@ function BeatAdWizardInner() {
   // Step 1 -> 2a part 1: ingest, then pitch 3-4 story angles. Moving to
   // 'theme' immediately lets the loading state render in that step's
   // slot instead of sitting on step 1.
-  async function ingestAndPitch(body) {
+  // toneOverride: the homepage's own tone picker hands its choice through
+  // ?tone= (see the auto-run effect below) - passed explicitly here
+  // rather than relying on the `tone` state var, since a setTone() call
+  // made just before this runs wouldn't be visible in this closure yet
+  // (state updates aren't synchronous).
+  async function ingestAndPitch(body, toneOverride) {
     setBusy(true); setError(null); setStep('theme')
     try {
       setBusyLabel(body.method === 'text' ? 'Reading your description…' : 'Reading your site…')
@@ -124,7 +129,7 @@ function BeatAdWizardInner() {
       setBusyLabel('Pitching a few story angles… (~10-15s)')
       const pitchRes = await fetch('/api/adbuilder/pitchthemes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: ingestData.brief, direction, tone, regenCount: 0 }),
+        body: JSON.stringify({ brief: ingestData.brief, direction, tone: toneOverride || tone, regenCount: 0 }),
       })
       const pitchData = await pitchRes.json()
       if (!pitchRes.ok) throw new Error(pitchData.error || 'Could not pitch story ideas')
@@ -181,7 +186,9 @@ function BeatAdWizardInner() {
     if (!urlParam) return
     const normalized = normalizeUrl(urlParam)
     setUrl(normalized)
-    ingestAndPitch({ method: 'url', url: normalized })
+    const toneParam = searchParams.get('tone')
+    if (toneParam && TONES.some((t) => t.key === toneParam)) setTone(toneParam)
+    ingestAndPitch({ method: 'url', url: normalized }, toneParam)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
