@@ -324,7 +324,7 @@ function BeatAdWizardInner() {
       setBusyLabel('Rendering every scene… (~45-90s, no video yet — that\'s the paid step)')
       const res = await fetch('/api/adbuilder/storyboardpreview', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief: { ...brief, voiceGender }, beats: editableBeats, atmosphere, referenceImageDataUrl: referencePreview }),
+        body: JSON.stringify({ brief: { ...brief, voiceGender, tonePreset: tone }, beats: editableBeats, atmosphere, referenceImageDataUrl: referencePreview }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not build your preview')
@@ -372,7 +372,7 @@ function BeatAdWizardInner() {
     try {
       const res = await fetch('/api/adbuilder/regenmusic', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, durationSeconds: totalDuration }),
+        body: JSON.stringify({ brief: { ...brief, tonePreset: tone }, durationSeconds: totalDuration }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not regenerate the music')
@@ -406,6 +406,14 @@ function BeatAdWizardInner() {
         // Same for the narrator voice - what the free preview played is
         // what the real ad should say it with.
         voiceGender,
+        // Real bug fix ("our music really sucks for zen"): generateMusic
+        // never knew which tone preset the user actually picked - it only
+        // saw brief.tone (auto-scraped site copy, unrelated). Carrying the
+        // real preset through here is what actually fixes it for the paid
+        // generation path (2b's free preview gets it via continueToPreview
+        // above, and this stash is what beatrun/start hands back to every
+        // later stage - beat/combine - so it doesn't need threading again).
+        tonePreset: tone,
       }
       const sceneImageUrl = beats?.[0]?.keyframeUrl || null
       // The real generation step re-synthesizes audio and re-generates
